@@ -7,6 +7,7 @@ const links = [
   { href: "/knowledge", label: "Knowledge Base" },
   { href: "/report", label: "Report" },
   { href: "/meta", label: "Area Meta" },
+  { href: "/blog", label: "Blog" },
 ];
 export function Nav() {
   return (
