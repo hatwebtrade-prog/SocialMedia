@@ -47,8 +47,13 @@ export function buildImageRuntimeDeps(): ImageDeps {
           path: "",
         },
       });
-      const relPath = saveAssetFile(input.contentId, asset.id, bytes);
-      await prisma.generatedAsset.update({ where: { id: asset.id }, data: { path: relPath } });
+      try {
+        const relPath = saveAssetFile(input.contentId, asset.id, bytes);
+        await prisma.generatedAsset.update({ where: { id: asset.id }, data: { path: relPath } });
+      } catch (err) {
+        await prisma.generatedAsset.delete({ where: { id: asset.id } }).catch(() => {});
+        throw err;
+      }
       return { assetId: asset.id };
     },
   };

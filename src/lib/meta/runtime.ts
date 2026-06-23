@@ -7,7 +7,7 @@ import type { MetaDeps, MetaClaudeResult } from "./generate";
 
 export function stripFences(text: string): string {
   return text
-    .replace(/^```(?:json)?\s*/i, "")
+    .replace(/^```\w*\s*/i, "")
     .replace(/\s*```\s*$/i, "")
     .trim();
 }

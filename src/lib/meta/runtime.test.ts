@@ -8,4 +8,7 @@ describe("stripFences", () => {
   it("returns plain JSON unchanged", () => {
     expect(stripFences('{"a":1}')).toBe('{"a":1}');
   });
+  it("strips arbitrary language tags like ```typescript", () => {
+    expect(stripFences('```typescript\n{"a":1}\n```')).toBe('{"a":1}');
+  });
 });
