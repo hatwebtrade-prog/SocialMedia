@@ -12,7 +12,7 @@ export function BlogContentTable() {
   useEffect(() => {
     fetch("/api/blog/contents")
       .then((r) => r.json())
-      .then(setItems)
+      .then((d) => setItems(Array.isArray(d) ? d : []))
       .catch(() => setItems([]))
       .finally(() => setLoading(false));
   }, []);

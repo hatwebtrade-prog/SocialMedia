@@ -20,16 +20,28 @@ const STATUSES = ["BOZZA", "DA_APPROVARE", "APPROVATO", "PROGRAMMATO", "PUBBLICA
 export default function BlogDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const [c, setC] = useState<Content | null>(null);
+  const [err, setErr] = useState<string | null>(null);
 
-  const load = () => fetch(`/api/blog/contents/${id}`).then((r) => r.json()).then(setC).catch(() => setC(null));
+  const load = () =>
+    fetch(`/api/blog/contents/${id}`)
+      .then((r) => { if (!r.ok) throw new Error("Articolo non trovato"); return r.json(); })
+      .then((d) => { setC(d); setErr(null); })
+      .catch(() => setErr("Impossibile caricare l'articolo."));
   useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [id]);
 
+  const setStatus = async (status: string) => {
+    try {
+      const res = await fetch(`/api/blog/contents/${id}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ status }) });
+      if (!res.ok) throw new Error();
+      await load();
+    } catch {
+      setErr("Aggiornamento stato non riuscito.");
+    }
+  };
+
+  if (err) return <p className="text-red-600">{err}</p>;
   if (!c) return <p>Caricamento…</p>;
   const p = c.payload ?? {};
-  const setStatus = async (status: string) => {
-    await fetch(`/api/blog/contents/${id}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ status }) });
-    load();
-  };
 
   return (
     <div className="max-w-3xl">
@@ -42,7 +54,7 @@ export default function BlogDetailPage({ params }: { params: Promise<{ id: strin
         </select>
       </div>
       <p className="mb-3 text-xs text-neutral-500">Keyword: {p.keywordPrincipale} {p.keywordSecondarie?.length ? `· ${p.keywordSecondarie.join(", ")}` : ""}</p>
-      {c.assets[0] && <img src={`/api/assets/${c.assets[0].id}`} alt="" className="mb-4 w-full max-w-md rounded" />}
+      {c.assets?.[0] && <img src={`/api/assets/${c.assets[0].id}`} alt="" className="mb-4 w-full max-w-md rounded" />}
       {p.puntiChiave?.length ? (
         <div className="mb-4 rounded bg-amber-50 p-3 text-sm">
           <strong>Punti chiave</strong>

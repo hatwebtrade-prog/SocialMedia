@@ -13,7 +13,7 @@ export default function BlogGeneraPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/ideas?status=APPROVATA").then((r) => r.json()).then(setIdeas).catch(() => setIdeas([]));
+    fetch("/api/ideas?status=APPROVATA").then((r) => r.json()).then((d) => setIdeas(Array.isArray(d) ? d : [])).catch(() => setIdeas([]));
   }, []);
 
   const submit = async () => {
