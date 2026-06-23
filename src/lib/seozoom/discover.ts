@@ -37,7 +37,10 @@ export async function discoverKeywords(input: DiscoverInput, deps: SeozoomDeps):
     const { seeds, kbContext, prodottoNome } = await deps.loadContext(input);
     const fetched = (await Promise.all(seeds.map((s) => deps.fetchKeywords(s)))).flat();
 
-    const POOL_SIZE = 40;
+    // POOL_SIZE capped at 15: metrics action requires one HTTP call per keyword
+    // (batch not supported — confirmed live 2026-06-23). At 20 req/min rate limit,
+    // 15 is the safe ceiling before the `related` fetch calls are also counted.
+    const POOL_SIZE = 15;
     const pool = selectCandidates(fetched, { topN: POOL_SIZE });
     if (pool.length === 0) throw new Error("Nessuna keyword trovata da SEOZoom per i seed indicati");
 

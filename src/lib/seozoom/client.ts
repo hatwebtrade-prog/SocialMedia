@@ -80,27 +80,44 @@ export function normalizeMetrics(raw: unknown): Map<string, number> {
 }
 
 /**
- * Fetches real keyword difficulty (KD) for a batch of keywords via the SEOZoom
+ * Fetches real keyword difficulty (KD) for a list of keywords via the SEOZoom
  * `metrics` action. Returns a Map of lowercased-keyword → KD.
  *
- * NOTE: the exact `metrics` request shape (batch vs per-keyword, param name, KD
- * field name, units cost, 20-req/min rate limit) MUST be confirmed against the
- * SEOZoom API docs / live response (Task 4). The URL below is the starting point;
- * the smoke test finalizes it. Throws on a non-ok HTTP response so the caller
- * (enrichDifficulty) can degrade.
+ * CONFIRMED (live, 2026-06-23): the `metrics` endpoint does NOT support
+ * comma-separated batches — a multi-keyword query returns {"status":400,"message":"No data found!"}.
+ * Each keyword must be fetched individually. Failures per keyword are caught
+ * individually so one bad keyword doesn't lose the rest.
+ *
+ * Rate limit: 20 req/min (documented). POOL_SIZE in discover.ts is capped at 15
+ * to stay safely under that limit across the two pipeline phases.
+ *
+ * Response shape (verified): { ResultRows, UnitsUsed, UnitsRemaining, response: [{ keyword, KD, ... }] }
+ * Difficulty field is literally "KD" (integer 0–100).
  */
 export async function fetchDifficulty(keywords: string[]): Promise<Map<string, number>> {
   if (keywords.length === 0) return new Map();
   const key = process.env.SEOZOOM_API_KEY;
   if (!key) throw new Error("SEOZOOM_API_KEY mancante");
   const base = SEOZOOM_BASE.replace(/\/$/, "");
-  const kwParam = encodeURIComponent(keywords.join(","));
-  const url = `${base}/?action=metrics&keyword=${kwParam}&db=it&api_key=${encodeURIComponent(key)}`;
-  const res = await fetch(url, { headers: { Accept: "application/json" } });
-  if (!res.ok) throw new Error(`SEOZoom metrics HTTP ${res.status}`);
-  const json = await res.json();
-  const rows = Array.isArray(json) ? json : (json?.response ?? json?.data ?? json?.keywords ?? []);
-  return normalizeMetrics(rows);
+  const map = new Map<string, number>();
+  await Promise.all(
+    keywords.map(async (kw) => {
+      try {
+        const url =
+          `${base}/?action=metrics&keyword=${encodeURIComponent(kw)}&db=it&api_key=${encodeURIComponent(key)}`;
+        const res = await fetch(url, { headers: { Accept: "application/json" } });
+        if (!res.ok) throw new Error(`SEOZoom metrics HTTP ${res.status}`);
+        const json = await res.json();
+        const rows = Array.isArray(json) ? json : (json?.response ?? json?.data ?? json?.keywords ?? []);
+        const partial = normalizeMetrics(rows);
+        for (const [k, v] of partial) map.set(k, v);
+      } catch (err) {
+        // One keyword failure does not lose the rest; caller (enrichDifficulty) degrades on partial results.
+        console.warn(`SEOZoom metrics failed for "${kw}":`, err instanceof Error ? err.message : err);
+      }
+    }),
+  );
+  return map;
 }
 
 /**
