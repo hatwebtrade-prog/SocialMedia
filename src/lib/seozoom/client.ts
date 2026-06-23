@@ -53,6 +53,56 @@ export function normalizeSeozoom(raw: unknown): NormalizedKeyword[] {
   return out;
 }
 
+interface MetricRow {
+  keyword?: unknown;
+  KD?: unknown;
+  kd?: unknown;
+  difficulty?: unknown;
+  difficolta?: unknown;
+}
+
+/**
+ * Maps SEOZoom `metrics` rows to a Map of lowercased-keyword → KD (0-100).
+ * The ONLY code aware of the metrics response shape. Skips rows without a
+ * keyword string or without a finite numeric KD.
+ */
+export function normalizeMetrics(raw: unknown): Map<string, number> {
+  const map = new Map<string, number>();
+  if (!Array.isArray(raw)) return map;
+  for (const r of raw as MetricRow[]) {
+    if (!r || typeof r.keyword !== "string" || !r.keyword.trim()) continue;
+    const kdRaw = r.KD ?? r.kd ?? r.difficulty ?? r.difficolta;
+    const kd = typeof kdRaw === "string" ? Number(kdRaw) : kdRaw;
+    if (typeof kd !== "number" || !Number.isFinite(kd)) continue;
+    map.set(r.keyword.trim().toLowerCase(), kd);
+  }
+  return map;
+}
+
+/**
+ * Fetches real keyword difficulty (KD) for a batch of keywords via the SEOZoom
+ * `metrics` action. Returns a Map of lowercased-keyword → KD.
+ *
+ * NOTE: the exact `metrics` request shape (batch vs per-keyword, param name, KD
+ * field name, units cost, 20-req/min rate limit) MUST be confirmed against the
+ * SEOZoom API docs / live response (Task 4). The URL below is the starting point;
+ * the smoke test finalizes it. Throws on a non-ok HTTP response so the caller
+ * (enrichDifficulty) can degrade.
+ */
+export async function fetchDifficulty(keywords: string[]): Promise<Map<string, number>> {
+  if (keywords.length === 0) return new Map();
+  const key = process.env.SEOZOOM_API_KEY;
+  if (!key) throw new Error("SEOZOOM_API_KEY mancante");
+  const base = SEOZOOM_BASE.replace(/\/$/, "");
+  const kwParam = encodeURIComponent(keywords.join(","));
+  const url = `${base}/?action=metrics&keyword=${kwParam}&db=it&api_key=${encodeURIComponent(key)}`;
+  const res = await fetch(url, { headers: { Accept: "application/json" } });
+  if (!res.ok) throw new Error(`SEOZoom metrics HTTP ${res.status}`);
+  const json = await res.json();
+  const rows = Array.isArray(json) ? json : (json?.response ?? json?.data ?? json?.keywords ?? []);
+  return normalizeMetrics(rows);
+}
+
 /**
  * Fetches related keywords for a seed term from SEOZoom and returns normalized rows.
  *

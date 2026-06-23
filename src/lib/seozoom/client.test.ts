@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { normalizeSeozoom } from "@/lib/seozoom/client";
+import { normalizeSeozoom, normalizeMetrics } from "@/lib/seozoom/client";
 
 describe("normalizeSeozoom", () => {
   it("maps SEOZoom rows to NormalizedKeyword with sensible defaults", () => {
@@ -19,5 +19,20 @@ describe("normalizeSeozoom", () => {
 
   it("ignores rows without a keyword string", () => {
     expect(normalizeSeozoom([{ search_volume: 100 }, null, { keyword: "ok", search_volume: 10 }])).toHaveLength(1);
+  });
+});
+
+describe("normalizeMetrics", () => {
+  it("maps metrics rows to a keyword→KD map (lowercased keys)", () => {
+    const m = normalizeMetrics([
+      { keyword: "Magnesio Sonno", KD: 42 },
+      { keyword: "vitamina c", difficulty: 70 },
+    ]);
+    expect(m.get("magnesio sonno")).toBe(42);
+    expect(m.get("vitamina c")).toBe(70);
+  });
+  it("skips rows without a keyword or without a numeric KD", () => {
+    const m = normalizeMetrics([{ keyword: "x" }, { KD: 5 }, null]);
+    expect(m.size).toBe(0);
   });
 });
