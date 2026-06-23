@@ -41,6 +41,8 @@ describe("generateMetaContent", () => {
     expect(res.status).toBe("ERROR");
     expect(res.error).toContain("API down");
     expect(deps.persist).not.toHaveBeenCalled();
+    expect(deps.loadContext).toHaveBeenCalledOnce();
+    expect(deps.callClaude).toHaveBeenCalledOnce();
   });
 
   it("returns ERROR when the idea is not approved (loadContext throws)", async () => {
@@ -51,5 +53,18 @@ describe("generateMetaContent", () => {
     );
     expect(res.status).toBe("ERROR");
     expect(res.error).toContain("non approvata");
+    expect(deps.callClaude).not.toHaveBeenCalled();
+    expect(deps.persist).not.toHaveBeenCalled();
+  });
+
+  it("returns ERROR when persist throws (any failure is caught)", async () => {
+    const deps = makeDeps({ persist: vi.fn().mockRejectedValue(new Error("DB giù")) });
+    const res = await generateMetaContent(
+      { ideaId: "idea_1", formato: "POST", piattaforme: ["INSTAGRAM"] },
+      deps as any,
+    );
+    expect(res.status).toBe("ERROR");
+    expect(res.error).toContain("DB giù");
+    expect(res.contentId).toBeUndefined();
   });
 });
