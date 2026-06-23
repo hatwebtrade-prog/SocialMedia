@@ -9,15 +9,17 @@ export async function GET(request: Request) {
   const category = searchParams.get("category");
   const platform = searchParams.get("platform");
   const productId = searchParams.get("productId");
+  const source = searchParams.get("source");
   if (status) where.status = status;
   if (category) where.category = category;
   if (platform) where.piattaformeConsigliate = { has: platform };
   if (productId) where.productId = productId;
+  if (source) where.source = { key: source };
 
   const ideas = await prisma.idea.findMany({
     where,
     orderBy: [{ priority: "desc" }, { createdAt: "desc" }],
-    include: { product: { select: { nome: true } } },
+    include: { product: { select: { nome: true } }, source: { select: { key: true } } },
   });
   return NextResponse.json(ideas);
 }

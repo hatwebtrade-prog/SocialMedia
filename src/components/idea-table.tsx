@@ -13,12 +13,15 @@ interface Idea {
   viralityScore: number;
   priority: number;
   status: string;
+  keyword?: string | null;
+  volumeRicerca?: number | null;
+  difficolta?: number | null;
   product?: { nome: string } | null;
 }
 
 export function IdeaTable() {
   const [ideas, setIdeas] = useState<Idea[]>([]);
-  const [filters, setFilters] = useState<Filters>({ status: "", category: "", platform: "" });
+  const [filters, setFilters] = useState<Filters>({ status: "", category: "", platform: "", source: "" });
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
 
@@ -28,6 +31,7 @@ export function IdeaTable() {
     if (filters.status) qs.set("status", filters.status);
     if (filters.category) qs.set("category", filters.category);
     if (filters.platform) qs.set("platform", filters.platform);
+    if (filters.source) qs.set("source", filters.source);
     const res = await fetch(`/api/ideas?${qs.toString()}`);
     setIdeas(await res.json());
     setSelected(new Set());
@@ -70,9 +74,10 @@ export function IdeaTable() {
               <th className="p-2"></th>
               <th className="p-2">Titolo</th>
               <th className="p-2">Categoria</th>
-              <th className="p-2">Piattaforme</th>
+              <th className="p-2">Keyword</th>
+              <th className="p-2">Vol.</th>
+              <th className="p-2">Diff.</th>
               <th className="p-2">SEO</th>
-              <th className="p-2">Viral</th>
               <th className="p-2">Prio</th>
               <th className="p-2">Stato</th>
             </tr>
@@ -83,14 +88,15 @@ export function IdeaTable() {
                 <td className="p-2"><input type="checkbox" checked={selected.has(i.id)} onChange={() => toggle(i.id)} /></td>
                 <td className="p-2"><Link href={`/ideas/${i.id}`} className="text-blue-600 hover:underline">{i.titolo}</Link></td>
                 <td className="p-2">{i.category}</td>
-                <td className="p-2">{i.piattaformeConsigliate.join(", ")}</td>
+                <td className="p-2">{i.keyword ?? "—"}</td>
+                <td className="p-2">{i.volumeRicerca ?? "—"}</td>
+                <td className="p-2">{i.difficolta ?? "—"}</td>
                 <td className="p-2">{i.seoScore}</td>
-                <td className="p-2">{i.viralityScore}</td>
                 <td className="p-2">{i.priority}</td>
                 <td className="p-2">{i.status}</td>
               </tr>
             ))}
-            {ideas.length === 0 && <tr><td colSpan={8} className="p-4 text-neutral-500">Nessuna idea.</td></tr>}
+            {ideas.length === 0 && <tr><td colSpan={9} className="p-4 text-neutral-500">Nessuna idea.</td></tr>}
           </tbody>
         </table>
       )}

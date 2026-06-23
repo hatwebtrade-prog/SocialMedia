@@ -6,7 +6,15 @@ export interface Filters {
   status: string;
   category: string;
   platform: string;
+  source: string;
 }
+
+const SOURCES = [
+  { key: "", label: "Tutte le sorgenti" },
+  { key: "ai-brainstorming", label: "AI" },
+  { key: "manuale", label: "Manuale" },
+  { key: "seozoom", label: "SEOZoom" },
+];
 
 export function IdeaFilters({
   filters,
@@ -28,6 +36,9 @@ export function IdeaFilters({
       <select value={filters.platform} onChange={(e) => onChange({ ...filters, platform: e.target.value })} className="rounded border p-1">
         <option value="">Tutte le piattaforme</option>
         {PLATFORMS.map((p) => <option key={p} value={p}>{p}</option>)}
+      </select>
+      <select value={filters.source} onChange={(e) => onChange({ ...filters, source: e.target.value })} className="rounded border p-1">
+        {SOURCES.map((s) => <option key={s.key} value={s.key}>{s.label}</option>)}
       </select>
     </div>
   );
