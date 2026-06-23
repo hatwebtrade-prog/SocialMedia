@@ -13,7 +13,7 @@ export default function ScopriPage() {
   const [status, setStatus] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/products").then((r) => r.json()).then(setProducts);
+    fetch("/api/products").then((r) => r.json()).then(setProducts).catch(() => setProducts([]));
   }, []);
 
   const submit = async () => {
@@ -22,18 +22,28 @@ export default function ScopriPage() {
       setStatus("Inserisci almeno un seed oppure scegli un prodotto.");
       return;
     }
+    const n = Number(topN);
+    if (!Number.isInteger(n) || n < 1 || n > 30) {
+      setStatus("Numero risultati non valido (1-30).");
+      return;
+    }
     setBusy(true); setStatus(null);
-    const body: Record<string, unknown> = { topN: Number(topN) };
-    if (seeds.length > 0) body.seeds = seeds;
-    if (productId) body.productId = productId;
-    const res = await fetch("/api/seozoom/discover", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(body),
-    });
-    const json = await res.json();
-    setBusy(false);
-    setStatus(res.ok ? `Create ${json.created} idee da SEOZoom. Vai alla Dashboard Idee.` : `Errore: ${json.error ?? "sconosciuto"}`);
+    try {
+      const body: Record<string, unknown> = { topN: n };
+      if (seeds.length > 0) body.seeds = seeds;
+      if (productId) body.productId = productId;
+      const res = await fetch("/api/seozoom/discover", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      const json = await res.json();
+      setStatus(res.ok ? `Create ${json.created} idee da SEOZoom. Vai alla Dashboard Idee.` : `Errore: ${json.error ?? "sconosciuto"}`);
+    } catch {
+      setStatus("Errore di rete durante la scoperta.");
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (

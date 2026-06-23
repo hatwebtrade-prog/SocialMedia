@@ -27,15 +27,20 @@ export function IdeaTable() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const qs = new URLSearchParams();
-    if (filters.status) qs.set("status", filters.status);
-    if (filters.category) qs.set("category", filters.category);
-    if (filters.platform) qs.set("platform", filters.platform);
-    if (filters.source) qs.set("source", filters.source);
-    const res = await fetch(`/api/ideas?${qs.toString()}`);
-    setIdeas(await res.json());
-    setSelected(new Set());
-    setLoading(false);
+    try {
+      const qs = new URLSearchParams();
+      if (filters.status) qs.set("status", filters.status);
+      if (filters.category) qs.set("category", filters.category);
+      if (filters.platform) qs.set("platform", filters.platform);
+      if (filters.source) qs.set("source", filters.source);
+      const res = await fetch(`/api/ideas?${qs.toString()}`);
+      setIdeas(await res.json());
+      setSelected(new Set());
+    } catch {
+      setIdeas([]);
+    } finally {
+      setLoading(false);
+    }
   }, [filters]);
 
   useEffect(() => { load(); }, [load]);
