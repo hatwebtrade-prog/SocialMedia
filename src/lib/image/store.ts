@@ -12,8 +12,11 @@ export function saveAssetFile(contentId: string, assetId: string, bytes: Buffer)
   return path.relative(process.cwd(), abs).replace(/\\/g, "/");
 }
 
-/** Deletes a stored file given its repo-relative path. Best-effort. */
+/** Deletes a stored file given its repo-relative path. Best-effort. No-op for empty/unsafe paths. */
 export function deleteAssetFile(relPath: string): void {
-  const abs = path.join(process.cwd(), relPath);
+  if (!relPath || !relPath.trim()) return;
+  const abs = path.resolve(process.cwd(), relPath);
+  // Safety: never delete the cwd itself or anything outside the uploads dir
+  if (abs === process.cwd() || !abs.startsWith(UPLOADS_DIR)) return;
   if (existsSync(abs)) rmSync(abs, { force: true });
 }

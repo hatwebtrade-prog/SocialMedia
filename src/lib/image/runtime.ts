@@ -34,7 +34,7 @@ export function buildImageRuntimeDeps(): ImageDeps {
         where: { contentId: input.contentId, slideIndex: input.slideIndex, tipo: "IMMAGINE" },
       });
       if (existing) {
-        deleteAssetFile(existing.path);
+        if (existing.path) deleteAssetFile(existing.path);
         await prisma.generatedAsset.delete({ where: { id: existing.id } });
       }
       const asset = await prisma.generatedAsset.create({
