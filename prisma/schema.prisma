@@ -147,6 +147,10 @@ model Idea {
   status                 IdeaStatus     @default(NUOVA)
   note                   String?
   tags                   String[]       @default([])
+  keyword                String?
+  volumeRicerca          Int?
+  difficolta             Int?
+  trendKeyword           String?
   productId              String?
   product                Product?       @relation(fields: [productId], references: [id], onDelete: SetNull)
   sourceId               String
@@ -161,6 +165,7 @@ model Idea {
   @@index([category])
   @@index([sourceId])
   @@index([productId])
+  @@index([keyword])
 }
 
 model GeneratedContent {

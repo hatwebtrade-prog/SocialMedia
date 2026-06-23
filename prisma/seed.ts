@@ -13,6 +13,11 @@ async function main() {
     update: {},
     create: { key: "manuale", nome: "Inserimento Manuale", tipo: "MANUALE" },
   });
+  await prisma.signalSource.upsert({
+    where: { key: "seozoom" },
+    update: {},
+    create: { key: "seozoom", nome: "SEOZoom", tipo: "API", config: { mercato: "IT", topN: 12 } },
+  });
 }
 
 main()
