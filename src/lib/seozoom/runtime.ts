@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { getClaude, BRAINSTORM_MODEL } from "@/lib/claude";
 import { buildKbContext } from "@/lib/brain/context";
 import { dedupeIdeas } from "@/lib/brain/dedupe";
-import { fetchKeywords } from "./client";
+import { fetchKeywords, fetchDifficulty } from "./client";
 import { buildShapingPrompt } from "./prompt";
 import { shapingOutputSchema } from "./schema";
 import { metricsToSeoScore } from "./score";
@@ -12,6 +12,17 @@ import type { SeozoomDeps, ShapingResult } from "./discover";
 export function matchCandidate(keyword: string, candidates: NormalizedKeyword[]): NormalizedKeyword | null {
   const target = keyword.trim().toLowerCase();
   return candidates.find((c) => c.keyword.trim().toLowerCase() === target) ?? null;
+}
+
+/** Returns the pool with `difficolta` replaced by real KD where the keyword has one. */
+export function enrichWithKd(
+  pool: NormalizedKeyword[],
+  kd: Map<string, number>,
+): NormalizedKeyword[] {
+  return pool.map((k) => {
+    const real = kd.get(k.keyword.trim().toLowerCase());
+    return typeof real === "number" ? { ...k, difficolta: real } : k;
+  });
 }
 
 function stripFences(text: string): string {
@@ -46,7 +57,16 @@ export function buildSeozoomDeps(): SeozoomDeps {
 
     fetchKeywords,
 
-    enrichDifficulty: async (keywords) => keywords,
+    enrichDifficulty: async (keywords) => {
+      try {
+        const kd = await fetchDifficulty(keywords.map((k) => k.keyword));
+        return enrichWithKd(keywords, kd);
+      } catch {
+        // Degrade: keep the volume-selected pool with neutral difficulty so the
+        // discovery still completes (KD enrichment is best-effort).
+        return keywords;
+      }
+    },
 
     callClaude: async ({ kbContext, prodottoNome, candidates }): Promise<ShapingResult> => {
       const prompt = buildShapingPrompt({ kbContext, prodottoNome, candidates });
