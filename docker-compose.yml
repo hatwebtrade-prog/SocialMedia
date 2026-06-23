@@ -22,6 +22,9 @@ services:
       ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY}"
       OPENAI_API_KEY: "${OPENAI_API_KEY}"
       SEOZOOM_API_KEY: "${SEOZOOM_API_KEY}"
+      SHOPIFY_SHOP_DOMAIN: "${SHOPIFY_SHOP_DOMAIN}"
+      SHOPIFY_ADMIN_TOKEN: "${SHOPIFY_ADMIN_TOKEN}"
+      SHOPIFY_STORE_URL: "${SHOPIFY_STORE_URL}"
     volumes:
       - uploads:/app/uploads
     depends_on:
