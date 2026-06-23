@@ -1,3 +1,5 @@
+import type { ShopProduct } from "@/lib/shopify/products";
+
 export interface BlogIdea {
   keyword: string | null;
   volumeRicerca: number | null;
@@ -12,13 +14,9 @@ export interface BlogSeo {
   keywordSecondarie: string[];
 }
 
-export interface BlogProductInfo {
-  handle: string;
-  titolo: string;
-  url: string;
-  categoria: string;
-  metafields: Record<string, string>;
-}
+// Product info passed to the prompt is exactly the Shopify read shape — alias it
+// so the two stay in sync (no structural drift).
+export type BlogProductInfo = ShopProduct;
 
 export interface BlogPromptArgs {
   kbContext: string;
