@@ -16,6 +16,7 @@ function makeDeps(overrides = {}) {
     }),
     persist: vi.fn().mockResolvedValue({ runId: "run_1", created: 1 }),
     recordError: vi.fn().mockResolvedValue(undefined),
+    enrichDifficulty: vi.fn().mockImplementation(async (kws) => kws),
     ...overrides,
   };
 }
@@ -56,5 +57,25 @@ describe("discoverKeywords", () => {
     const res = await discoverKeywords({ seeds: ["magnesio"] }, deps as any);
     expect(res.status).toBe("ERROR");
     expect(res.error).toContain("API down");
+  });
+
+  it("uses enriched difficulty for the final selection", async () => {
+    const deps = makeDeps({
+      fetchKeywords: vi.fn().mockResolvedValue([
+        { keyword: "big", volume: 5000, difficolta: 50, trend: "stabile" },
+        { keyword: "easy", volume: 2000, difficolta: 50, trend: "stabile" },
+      ]),
+      enrichDifficulty: vi.fn().mockImplementation(async (kws: any[]) =>
+        kws.map((k) => ({ ...k, difficolta: k.keyword === "big" ? 95 : 5 })),
+      ),
+      callClaude: vi.fn().mockResolvedValue({
+        ideas: [], promptUsato: "P", modello: "claude-opus-4-8", inputTokens: 1, outputTokens: 1, rawOutput: {},
+      }),
+      persist: vi.fn().mockResolvedValue({ runId: "r", created: 0 }),
+    });
+    await discoverKeywords({ seeds: ["x"], topN: 1 }, deps as any);
+    expect(deps.enrichDifficulty).toHaveBeenCalledOnce();
+    const candidatesToClaude = (deps.callClaude as any).mock.calls[0][0].candidates;
+    expect(candidatesToClaude[0].keyword).toBe("easy");
   });
 });

@@ -46,6 +46,8 @@ export function buildSeozoomDeps(): SeozoomDeps {
 
     fetchKeywords,
 
+    enrichDifficulty: async (keywords) => keywords,
+
     callClaude: async ({ kbContext, prodottoNome, candidates }): Promise<ShapingResult> => {
       const prompt = buildShapingPrompt({ kbContext, prodottoNome, candidates });
       const claude = getClaude();
