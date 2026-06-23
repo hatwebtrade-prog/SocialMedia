@@ -54,6 +54,30 @@ enum RunStatus {
   ERROR
 }
 
+enum Canale {
+  META
+  TIKTOK
+  BLOG
+}
+
+enum ContentFormat {
+  POST
+  CAROSELLO
+}
+
+enum ContentStatus {
+  BOZZA
+  DA_APPROVARE
+  APPROVATO
+  PROGRAMMATO
+  PUBBLICATO
+}
+
+enum AssetType {
+  IMMAGINE
+  VIDEO
+}
+
 model Product {
   id          String          @id @default(cuid())
   nome        String
@@ -131,9 +155,49 @@ model Idea {
   generationRun          GenerationRun? @relation(fields: [generationRunId], references: [id], onDelete: SetNull)
   createdAt              DateTime       @default(now())
   updatedAt              DateTime       @updatedAt
+  contenuti              GeneratedContent[]
 
   @@index([status, category])
   @@index([category])
   @@index([sourceId])
   @@index([productId])
+}
+
+model GeneratedContent {
+  id            String          @id @default(cuid())
+  ideaId        String
+  idea          Idea            @relation(fields: [ideaId], references: [id], onDelete: Cascade)
+  canale        Canale
+  formato       ContentFormat
+  piattaforme   Platform[]      @default([])
+  status        ContentStatus   @default(BOZZA)
+  dataPrevista  DateTime?
+  payload       Json            @default("{}")
+  promptUsato   String          @default("")
+  modello       String          @default("")
+  inputTokens   Int             @default(0)
+  outputTokens  Int             @default(0)
+  outputGrezzo  Json            @default("{}")
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  assets        GeneratedAsset[]
+
+  @@index([status])
+  @@index([canale])
+  @@index([dataPrevista])
+  @@index([ideaId])
+}
+
+model GeneratedAsset {
+  id         String           @id @default(cuid())
+  contentId  String
+  content    GeneratedContent @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  slideIndex Int?
+  tipo       AssetType        @default(IMMAGINE)
+  prompt     String           @default("")
+  modello    String           @default("")
+  path       String
+  createdAt  DateTime         @default(now())
+
+  @@index([contentId])
 }
