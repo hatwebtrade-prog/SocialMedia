@@ -4,3 +4,8 @@ out/
 .env
 *.tsbuildinfo
 npm-debug.log*
+
+# local scratch
+scratch-shots.mjs
+shots/
+uploads/
