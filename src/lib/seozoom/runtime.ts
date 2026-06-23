@@ -61,9 +61,11 @@ export function buildSeozoomDeps(): SeozoomDeps {
       try {
         const kd = await fetchDifficulty(keywords.map((k) => k.keyword));
         return enrichWithKd(keywords, kd);
-      } catch {
+      } catch (err) {
         // Degrade: keep the volume-selected pool with neutral difficulty so the
-        // discovery still completes (KD enrichment is best-effort).
+        // discovery still completes (KD enrichment is best-effort). Log so a
+        // broken metrics endpoint is visible instead of silently neutral.
+        console.error("SEOZoom KD enrichment failed, degrading to neutral difficulty:", err instanceof Error ? err.message : err);
         return keywords;
       }
     },
