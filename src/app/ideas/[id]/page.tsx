@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import Link from "next/link";
 import { IDEA_STATUSES } from "@/lib/brain/enums";
 
 interface Idea {
@@ -53,6 +54,11 @@ export default function IdeaDetailPage() {
           {IDEA_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
         </select>
       </label>
+      {idea.status === "APPROVATA" && (
+        <p className="mb-4">
+          <Link href={`/meta/genera?ideaId=${idea.id}`} className="rounded bg-blue-600 px-3 py-1 text-sm text-white">Genera contenuto Meta</Link>
+        </p>
+      )}
       <label className="mb-2 block text-sm">Note:</label>
       <textarea className="mb-2 w-full rounded border p-2" rows={4} defaultValue={idea.note ?? ""} onBlur={(e) => patch({ note: e.target.value })} />
       {saved && <p className="text-sm text-green-700">Salvato.</p>}
