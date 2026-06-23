@@ -1,0 +1,19 @@
+import { NextResponse } from "next/server";
+import { readFileSync, existsSync } from "node:fs";
+import path from "node:path";
+import { prisma } from "@/lib/prisma";
+
+type Ctx = { params: Promise<{ id: string }> };
+
+export async function GET(_req: Request, { params }: Ctx) {
+  const { id } = await params;
+  const asset = await prisma.generatedAsset.findUnique({ where: { id } });
+  if (!asset) return NextResponse.json({ error: "Non trovato" }, { status: 404 });
+  const abs = path.join(process.cwd(), asset.path);
+  if (!existsSync(abs)) return NextResponse.json({ error: "File mancante" }, { status: 404 });
+  const bytes = readFileSync(abs);
+  return new NextResponse(bytes, {
+    status: 200,
+    headers: { "content-type": "image/png", "cache-control": "private, max-age=60" },
+  });
+}
