@@ -20,5 +20,6 @@ COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/package.json ./package.json
 ENV HOSTNAME=0.0.0.0
 ENV PORT=3000
+RUN mkdir -p /app/uploads
 EXPOSE 3000
 CMD ["node", "server.js"]

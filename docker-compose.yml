@@ -20,6 +20,9 @@ services:
     environment:
       DATABASE_URL: "postgresql://agocap:agocap@db:5432/agocap?schema=public"
       ANTHROPIC_API_KEY: "${ANTHROPIC_API_KEY}"
+      OPENAI_API_KEY: "${OPENAI_API_KEY}"
+    volumes:
+      - uploads:/app/uploads
     depends_on:
       db:
         condition: service_healthy
@@ -29,3 +32,4 @@ services:
 
 volumes:
   pgdata:
+  uploads:
