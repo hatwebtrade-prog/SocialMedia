@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { IDEA_STATUSES } from "@/lib/brain/enums";
+import { IDEA_STATUSES, DESTINAZIONI } from "@/lib/brain/enums";
 
 interface Idea {
   id: string;
@@ -16,6 +16,7 @@ interface Idea {
   viralityScore: number;
   priority: number;
   piattaformeConsigliate: string[];
+  destinazioni: string[];
   product?: { nome: string } | null;
   generationRun?: { id: string; modello: string; promptUsato: string } | null;
 }
@@ -54,10 +55,41 @@ export default function IdeaDetailPage() {
           {IDEA_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
         </select>
       </label>
+      <div className="mb-4">
+        <span className="mb-1 block text-sm">Destinazioni editoriali:</span>
+        <div className="flex flex-wrap gap-3 text-sm">
+          {DESTINAZIONI.map((d) => {
+            const checked = idea.destinazioni?.includes(d) ?? false;
+            return (
+              <label key={d} className="flex items-center gap-1">
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={() => {
+                    const next = checked
+                      ? (idea.destinazioni ?? []).filter((x) => x !== d)
+                      : [...(idea.destinazioni ?? []), d];
+                    patch({ destinazioni: next });
+                  }}
+                />
+                {d}
+              </label>
+            );
+          })}
+        </div>
+      </div>
       {idea.status === "APPROVATA" && (
-        <p className="mb-4">
-          <Link href={`/meta/genera?ideaId=${idea.id}`} className="rounded bg-blue-600 px-3 py-1 text-sm text-white">Genera contenuto Meta</Link>
-        </p>
+        <div className="mb-4 flex flex-wrap gap-2 text-sm">
+          {idea.destinazioni?.includes("META") && (
+            <Link href={`/meta/genera?ideaId=${idea.id}`} className="rounded bg-blue-600 px-3 py-1 text-white">Genera contenuto Meta</Link>
+          )}
+          {idea.destinazioni?.includes("BLOG") && (
+            <Link href={`/blog/genera?ideaId=${idea.id}`} className="rounded bg-blue-600 px-3 py-1 text-white">Genera articolo Blog</Link>
+          )}
+          {(idea.destinazioni?.includes("TIKTOK") || idea.destinazioni?.includes("EMAIL")) && (
+            <span className="rounded bg-neutral-100 px-3 py-1 text-neutral-500">TikTok/Email: generatore in arrivo</span>
+          )}
+        </div>
       )}
       <label className="mb-2 block text-sm">Note:</label>
       <textarea className="mb-2 w-full rounded border p-2" rows={4} defaultValue={idea.note ?? ""} onBlur={(e) => patch({ note: e.target.value })} />
