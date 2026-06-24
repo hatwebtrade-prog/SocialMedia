@@ -109,6 +109,7 @@ model Product {
   ingredienti String?
   target      String?
   url         String?
+  handle      String?         @unique
   attivo      Boolean         @default(true)
   createdAt   DateTime        @default(now())
   ideas       Idea[]
