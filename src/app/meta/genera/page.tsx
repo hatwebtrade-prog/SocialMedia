@@ -15,7 +15,7 @@ function GeneraInner() {
   const [status, setStatus] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/ideas?status=APPROVATA").then((r) => r.json()).then(setIdeas);
+    fetch("/api/ideas?status=APPROVATA&destinazione=META").then((r) => r.json()).then((d) => setIdeas(Array.isArray(d) ? d : []));
   }, []);
 
   const togglePlatform = (p: string) =>

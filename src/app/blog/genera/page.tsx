@@ -1,28 +1,27 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 
 interface Idea { id: string; titolo: string; }
 
-export default function BlogGeneraPage() {
+function BlogGeneraInner() {
   const router = useRouter();
+  const search = useSearchParams();
   const [ideas, setIdeas] = useState<Idea[]>([]);
-  const [ideaId, setIdeaId] = useState("");
+  const [ideaId, setIdeaId] = useState(search.get("ideaId") ?? "");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch("/api/ideas?status=APPROVATA").then((r) => r.json()).then((d) => setIdeas(Array.isArray(d) ? d : [])).catch(() => setIdeas([]));
+    fetch("/api/ideas?status=APPROVATA&destinazione=BLOG").then((r) => r.json()).then((d) => setIdeas(Array.isArray(d) ? d : [])).catch(() => setIdeas([]));
   }, []);
 
   const submit = async () => {
     if (!ideaId) { setError("Scegli un'idea approvata."); return; }
     setBusy(true); setError(null);
     try {
-      const res = await fetch("/api/blog/generate", {
-        method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ideaId }),
-      });
+      const res = await fetch("/api/blog/generate", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ ideaId }) });
       const json = await res.json();
       if (res.ok && json.contentId) router.push(`/blog/${json.contentId}`);
       else setError(`Errore: ${json.error ?? "sconosciuto"}`);
@@ -46,4 +45,8 @@ export default function BlogGeneraPage() {
       {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
     </div>
   );
+}
+
+export default function BlogGeneraPage() {
+  return <Suspense><BlogGeneraInner /></Suspense>;
 }
