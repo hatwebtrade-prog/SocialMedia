@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync, rmSync, existsSync } from "node:fs";
+import { mkdirSync, writeFileSync, rmSync, existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 
 export const UPLOADS_DIR = path.join(process.cwd(), "uploads");
@@ -19,4 +19,16 @@ export function deleteAssetFile(relPath: string): void {
   // Safety: never delete the cwd itself or anything outside the uploads dir
   if (abs === process.cwd() || !abs.startsWith(UPLOADS_DIR)) return;
   if (existsSync(abs)) rmSync(abs, { force: true });
+}
+
+/** Reads a stored asset file (by its relative path) and returns base64, or null if missing/outside uploads. */
+export function readAssetBase64(relPath: string): string | null {
+  if (!relPath || !relPath.trim()) return null;
+  const abs = path.resolve(process.cwd(), relPath);
+  if (!abs.startsWith(UPLOADS_DIR)) return null;
+  try {
+    return readFileSync(abs).toString("base64");
+  } catch {
+    return null;
+  }
 }
