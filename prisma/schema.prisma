@@ -210,11 +210,25 @@ model GeneratedContent {
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
   assets        GeneratedAsset[]
+  calendarItem  EditorialCalendarItem?
 
   @@index([status])
   @@index([canale])
   @@index([dataPrevista])
   @@index([ideaId])
+}
+
+model EditorialCalendarItem {
+  id           String            @id @default(cuid())
+  contentId    String            @unique
+  content      GeneratedContent  @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  scheduledAt  DateTime
+  channel      Canale
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  @@index([scheduledAt])
+  @@index([channel])
 }
 
 model GeneratedAsset {
