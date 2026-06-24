@@ -1,4 +1,12 @@
-import { ComingSoon } from "@/components/coming-soon";
+import { CalendarBoard } from "@/components/calendar-board";
+
+export const dynamic = "force-dynamic";
+
 export default function CalendarioPage() {
-  return <ComingSoon title="Calendario Editoriale" descrizione="Vista unica (mese/settimana/agenda) di tutti i contenuti programmati su ogni canale, con assegnazione delle date. Disponibile in una fase successiva." />;
+  return (
+    <div>
+      <h1 className="mb-4 text-2xl font-semibold">Calendario Editoriale</h1>
+      <CalendarBoard />
+    </div>
+  );
 }
