@@ -25,11 +25,15 @@ export async function PATCH(request: Request, { params }: Ctx) {
 
 export async function DELETE(_req: Request, { params }: Ctx) {
   const { id } = await params;
-  const item = await prisma.editorialCalendarItem.findUnique({ where: { id } });
-  if (!item) return NextResponse.json({ error: "Non trovato" }, { status: 404 });
-  await prisma.$transaction(async (tx) => {
-    await tx.editorialCalendarItem.delete({ where: { id } });
-    await tx.generatedContent.update({ where: { id: item.contentId }, data: { status: "APPROVATO", dataPrevista: null } });
-  });
-  return NextResponse.json({ ok: true });
+  try {
+    await prisma.$transaction(async (tx) => {
+      // delete returns the row and throws P2025 if missing — atomic, no pre-flight race
+      const item = await tx.editorialCalendarItem.delete({ where: { id } });
+      await tx.generatedContent.update({ where: { id: item.contentId }, data: { status: "APPROVATO", dataPrevista: null } });
+    });
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    if ((err as { code?: string }).code === "P2025") return NextResponse.json({ error: "Non trovato" }, { status: 404 });
+    throw err;
+  }
 }
