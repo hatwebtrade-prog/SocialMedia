@@ -7,3 +7,6 @@ export const META_PLATFORMS = ["INSTAGRAM", "FACEBOOK"] as const;
 export type ContentFormatValue = (typeof CONTENT_FORMATS)[number];
 export type ContentStatusValue = (typeof CONTENT_STATUSES)[number];
 export type MetaPlatformValue = (typeof META_PLATFORMS)[number];
+
+export const PUBLICATION_STATUSES = ["NON_INVIATO", "INVIATO_A_N8N", "IN_PUBBLICAZIONE", "PUBBLICATO", "ERRORE"] as const;
+export type PublicationStatusValue = (typeof PUBLICATION_STATUSES)[number];

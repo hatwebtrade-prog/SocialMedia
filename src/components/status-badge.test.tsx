@@ -13,3 +13,12 @@ describe("badgeStyle", () => {
     expect(b.className).toBeTruthy();
   });
 });
+
+describe("badgeStyle publication states", () => {
+  it("maps technical publication states", () => {
+    expect(badgeStyle("NON_INVIATO").label).toBe("Non inviato");
+    expect(badgeStyle("INVIATO_A_N8N").label).toBe("Inviato a n8n");
+    expect(badgeStyle("INVIATO_A_N8N").className).toContain("blue");
+    expect(badgeStyle("IN_PUBBLICAZIONE").label).toBe("In pubblicazione");
+  });
+});

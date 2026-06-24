@@ -18,6 +18,9 @@ const MAP: Record<string, BadgeDef> = {
   PROGRAMMATO: { label: "Programmato", className: BLUE },
   PUBBLICATO: { label: "Pubblicato", className: GREEN },
   ERRORE: { label: "Errore", className: RED },
+  NON_INVIATO: { label: "Non inviato", className: GRAY },
+  INVIATO_A_N8N: { label: "Inviato a n8n", className: BLUE },
+  IN_PUBBLICAZIONE: { label: "In pubblicazione", className: AMBER },
 };
 
 export function badgeStyle(status: string): BadgeDef {

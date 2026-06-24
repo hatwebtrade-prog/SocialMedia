@@ -88,6 +88,14 @@ enum AssetType {
   VIDEO
 }
 
+enum PublicationStatus {
+  NON_INVIATO
+  INVIATO_A_N8N
+  IN_PUBBLICAZIONE
+  PUBBLICATO
+  ERRORE
+}
+
 model Product {
   id          String          @id @default(cuid())
   nome        String
@@ -194,6 +202,11 @@ model GeneratedContent {
   inputTokens   Int             @default(0)
   outputTokens  Int             @default(0)
   outputGrezzo  Json            @default("{}")
+  publicationStatus  PublicationStatus  @default(NON_INVIATO)
+  publicationError   String?
+  publishedAt        DateTime?
+  shopifyArticleId   String?
+  shopifyArticleUrl  String?
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
   assets        GeneratedAsset[]
