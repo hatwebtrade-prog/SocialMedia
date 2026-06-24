@@ -3,6 +3,7 @@ import { getClaude, BRAINSTORM_MODEL } from "@/lib/claude";
 import { buildKbContext } from "@/lib/brain/context";
 import { dedupeIdeas } from "@/lib/brain/dedupe";
 import { fetchKeywords, fetchDifficulty } from "./client";
+import { fetchGoogleRelated } from "@/lib/google/related";
 import { buildShapingPrompt } from "./prompt";
 import { shapingOutputSchema } from "./schema";
 import { metricsToSeoScore } from "./score";
@@ -56,6 +57,12 @@ export function buildSeozoomDeps(): SeozoomDeps {
     },
 
     fetchKeywords,
+
+    googleRelated: async (seeds) => {
+      const all = (await Promise.all(seeds.map((s) => fetchGoogleRelated(s)))).flat();
+      const uniq = Array.from(new Set(all.map((s) => s.trim().toLowerCase()))).filter(Boolean);
+      return uniq.slice(0, 5);
+    },
 
     enrichDifficulty: async (keywords) => {
       try {

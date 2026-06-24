@@ -17,6 +17,7 @@ function makeDeps(overrides = {}) {
     persist: vi.fn().mockResolvedValue({ runId: "run_1", created: 1 }),
     recordError: vi.fn().mockResolvedValue(undefined),
     enrichDifficulty: vi.fn().mockImplementation(async (kws) => kws),
+    googleRelated: vi.fn().mockResolvedValue([]),
     ...overrides,
   };
 }
@@ -57,6 +58,20 @@ describe("discoverKeywords", () => {
     const res = await discoverKeywords({ seeds: ["magnesio"] }, deps as any);
     expect(res.status).toBe("ERROR");
     expect(res.error).toContain("API down");
+  });
+
+  it("expands seeds with Google related before fetching keywords", async () => {
+    const fetchKeywords = vi.fn().mockResolvedValue([{ keyword: "k", volume: 100, difficolta: 30, trend: "stabile" }]);
+    const deps = makeDeps({
+      loadContext: vi.fn().mockResolvedValue({ seeds: ["magnesio"], kbContext: "kb" }),
+      googleRelated: vi.fn().mockResolvedValue(["magnesio sonno"]),
+      fetchKeywords,
+    });
+    await discoverKeywords({ seeds: ["magnesio"] }, deps as any);
+    expect(deps.googleRelated).toHaveBeenCalledWith(["magnesio"]);
+    const fetched = fetchKeywords.mock.calls.map((c) => c[0]);
+    expect(fetched).toContain("magnesio");
+    expect(fetched).toContain("magnesio sonno");
   });
 
   it("uses enriched difficulty for the final selection", async () => {

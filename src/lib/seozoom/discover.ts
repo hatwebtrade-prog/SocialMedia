@@ -19,6 +19,7 @@ export interface ShapingResult extends ShapingOutput {
 export interface SeozoomDeps {
   loadContext: (input: DiscoverInput) => Promise<{ seeds: string[]; kbContext: string; prodottoNome?: string }>;
   fetchKeywords: (seed: string) => Promise<NormalizedKeyword[]>;
+  googleRelated: (seeds: string[]) => Promise<string[]>;
   enrichDifficulty: (keywords: NormalizedKeyword[]) => Promise<NormalizedKeyword[]>;
   callClaude: (args: { kbContext: string; prodottoNome?: string; candidates: NormalizedKeyword[] }) => Promise<ShapingResult>;
   persist: (args: { input: DiscoverInput; candidates: NormalizedKeyword[]; claudeResult: ShapingResult }) => Promise<{ runId: string; created: number }>;
@@ -35,7 +36,9 @@ export interface DiscoverResult {
 export async function discoverKeywords(input: DiscoverInput, deps: SeozoomDeps): Promise<DiscoverResult> {
   try {
     const { seeds, kbContext, prodottoNome } = await deps.loadContext(input);
-    const fetched = (await Promise.all(seeds.map((s) => deps.fetchKeywords(s)))).flat();
+    const related = await deps.googleRelated(seeds);
+    const allSeeds = Array.from(new Set([...seeds, ...related]));
+    const fetched = (await Promise.all(allSeeds.map((s) => deps.fetchKeywords(s)))).flat();
 
     // POOL_SIZE capped at 15: metrics action requires one HTTP call per keyword
     // (batch not supported — confirmed live 2026-06-23). At 20 req/min rate limit,
