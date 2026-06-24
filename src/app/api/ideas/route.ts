@@ -15,6 +15,13 @@ export async function GET(request: Request) {
   if (platform) where.piattaformeConsigliate = { has: platform };
   if (productId) where.productId = productId;
   if (source) where.source = { key: source };
+  const destinazione = searchParams.get("destinazione");
+  const priorityParam = searchParams.get("priority");
+  if (destinazione) where.destinazioni = { has: destinazione };
+  if (priorityParam) {
+    const p = Number(priorityParam);
+    if (Number.isInteger(p)) where.priority = p;
+  }
 
   const ideas = await prisma.idea.findMany({
     where,
