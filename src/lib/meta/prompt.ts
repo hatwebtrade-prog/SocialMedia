@@ -23,16 +23,31 @@ export function buildMetaPrompt(args: MetaPromptArgs): string {
 - hashtags: array di hashtag pertinenti
 - cta: call to action`;
 
-  const campi =
-    formato === "CAROSELLO"
-      ? `${campiPost}
-- slides: array di esattamente ${numeroSlide} slide, ognuna { "testo": "..." } (testo della slide)`
-      : campiPost;
-
-  const forma =
-    formato === "CAROSELLO"
-      ? `{"caption":"...","ideaCreativa":"...","hashtags":["..."],"cta":"...","slides":[{"testo":"..."}]}`
-      : `{"caption":"...","ideaCreativa":"...","hashtags":["..."],"cta":"..."}`;
+  let campi: string;
+  let forma: string;
+  switch (formato) {
+    case "CAROSELLO":
+      campi = `${campiPost}
+- slides: array di esattamente ${numeroSlide} slide, ognuna { "testo": "..." } (testo della slide)`;
+      forma = `{"caption":"...","ideaCreativa":"...","hashtags":["..."],"cta":"...","slides":[{"testo":"..."}]}`;
+      break;
+    case "REEL":
+      campi = `${campiPost}
+- hook: frase d'aggancio iniziale (primi 3 secondi)
+- scriptParlato: testo parlato del reel
+- testoSchermo: array di brevi testi da sovrimprimere a schermo`;
+      forma = `{"caption":"...","ideaCreativa":"...","hashtags":["..."],"cta":"...","hook":"...","scriptParlato":"...","testoSchermo":["..."]}`;
+      break;
+    case "STORY":
+      campi = `- ideaCreativa: concept visivo della story (cosa mostrare)
+- testo: testo overlay breve e diretto
+- cta: call to action (es. scopri / link in bio)`;
+      forma = `{"ideaCreativa":"...","testo":"...","cta":"..."}`;
+      break;
+    default:
+      campi = campiPost;
+      forma = `{"caption":"...","ideaCreativa":"...","hashtags":["..."],"cta":"..."}`;
+  }
 
   return `Sei un social media specialist per Agocap (integratori, benessere, beauty, salute naturale).
 
