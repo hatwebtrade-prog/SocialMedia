@@ -3,6 +3,7 @@
 import { IDEA_STATUSES, IDEA_CATEGORIES, PLATFORMS, DESTINAZIONI } from "@/lib/brain/enums";
 
 export interface Filters {
+  q: string;
   status: string;
   category: string;
   platform: string;
@@ -22,6 +23,12 @@ export function IdeaFilters({ filters, onChange }: { filters: Filters; onChange:
   const set = (k: keyof Filters, v: string) => onChange({ ...filters, [k]: v });
   return (
     <div className="mb-4 flex flex-wrap gap-3 text-sm">
+      <input
+        value={filters.q}
+        onChange={(e) => set("q", e.target.value)}
+        placeholder="Cerca per titolo o keyword…"
+        className="rounded border p-1"
+      />
       <select value={filters.status} onChange={(e) => set("status", e.target.value)} className="rounded border p-1">
         <option value="">Tutti gli stati</option>
         {IDEA_STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}

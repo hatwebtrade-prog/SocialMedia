@@ -5,6 +5,8 @@ import Link from "next/link";
 import { IdeaFilters, type Filters } from "./idea-filters";
 import { StatusBadge } from "./status-badge";
 import { DESTINAZIONI } from "@/lib/brain/enums";
+import { ChannelIcons } from "@/components/channel-icon";
+import { matchesText } from "@/lib/brain/search";
 
 interface Idea {
   id: string;
@@ -25,21 +27,27 @@ const SOURCE_LABEL: Record<string, string> = { "ai-brainstorming": "AI", manuale
 
 export function IdeaTable() {
   const [ideas, setIdeas] = useState<Idea[]>([]);
-  const [filters, setFilters] = useState<Filters>({ status: "", category: "", platform: "", source: "", destinazione: "", priorita: "" });
+  const [filters, setFilters] = useState<Filters>({ q: "", status: "", category: "", platform: "", source: "", destinazione: "", priorita: "" });
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [destSel, setDestSel] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
+  const [debouncedQ, setDebouncedQ] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => setDebouncedQ(filters.q), 300);
+    return () => clearTimeout(t);
+  }, [filters.q]);
 
+  const { status, category, platform, source, destinazione, priorita } = filters;
   const load = useCallback(async () => {
     setLoading(true);
     try {
       const qs = new URLSearchParams();
-      if (filters.status) qs.set("status", filters.status);
-      if (filters.category) qs.set("category", filters.category);
-      if (filters.platform) qs.set("platform", filters.platform);
-      if (filters.source) qs.set("source", filters.source);
-      if (filters.destinazione) qs.set("destinazione", filters.destinazione);
-      if (filters.priorita) qs.set("priority", filters.priorita);
+      if (status) qs.set("status", status);
+      if (category) qs.set("category", category);
+      if (platform) qs.set("platform", platform);
+      if (source) qs.set("source", source);
+      if (destinazione) qs.set("destinazione", destinazione);
+      if (priorita) qs.set("priority", priorita);
       const res = await fetch(`/api/ideas?${qs.toString()}`);
       const data = await res.json();
       setIdeas(Array.isArray(data) ? data : []);
@@ -49,7 +57,7 @@ export function IdeaTable() {
     } finally {
       setLoading(false);
     }
-  }, [filters]);
+  }, [status, category, platform, source, destinazione, priorita]);
 
   useEffect(() => { load(); }, [load]);
 
@@ -72,6 +80,8 @@ export function IdeaTable() {
     await load();
   };
 
+  const visible = ideas.filter((i) => matchesText({ titolo: i.titolo, keyword: i.keyword }, debouncedQ));
+
   return (
     <div>
       <IdeaFilters filters={filters} onChange={setFilters} />
@@ -88,7 +98,9 @@ export function IdeaTable() {
         ))}
         <button onClick={bulkDestinazioni} className="rounded bg-blue-600 px-3 py-1 text-white disabled:opacity-40" disabled={selected.size === 0 || destSel.size === 0}>Assegna ({selected.size})</button>
       </div>
-      {loading ? <p>Caricamento…</p> : (
+      {loading ? (
+        <div className="space-y-2">{Array.from({ length: 5 }).map((_, i) => <div key={i} className="h-8 animate-pulse rounded bg-neutral-100" />)}</div>
+      ) : (
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="border-b text-left text-neutral-500">
@@ -106,13 +118,13 @@ export function IdeaTable() {
             </tr>
           </thead>
           <tbody>
-            {ideas.map((i) => (
+            {visible.map((i) => (
               <tr key={i.id} className="border-b hover:bg-neutral-50">
                 <td className="p-2"><input type="checkbox" checked={selected.has(i.id)} onChange={() => toggle(i.id)} /></td>
                 <td className="p-2"><Link href={`/ideas/${i.id}`} className="text-blue-600 hover:underline">{i.titolo}</Link></td>
                 <td className="p-2">{i.category}</td>
                 <td className="p-2">{i.source ? (SOURCE_LABEL[i.source.key] ?? i.source.key) : "—"}</td>
-                <td className="p-2">{i.destinazioni?.length ? i.destinazioni.join(", ") : "—"}</td>
+                <td className="p-2"><ChannelIcons channels={i.destinazioni ?? []} /></td>
                 <td className="p-2">{i.keyword ?? "—"}</td>
                 <td className="p-2">{i.volumeRicerca ?? "—"}</td>
                 <td className="p-2">{i.difficolta ?? "—"}</td>
@@ -121,7 +133,7 @@ export function IdeaTable() {
                 <td className="p-2"><StatusBadge status={i.status} /></td>
               </tr>
             ))}
-            {ideas.length === 0 && <tr><td colSpan={11} className="p-4 text-neutral-500">Nessuna idea.</td></tr>}
+            {visible.length === 0 && <tr><td colSpan={11} className="p-4 text-neutral-500">Nessuna idea.</td></tr>}
           </tbody>
         </table>
       )}
