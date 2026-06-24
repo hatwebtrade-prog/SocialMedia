@@ -50,12 +50,7 @@ export function buildMetaDeps(): MetaDeps {
         throw new Error("Output AI non conforme");
       }
       const raw = JSON.parse(stripFences(textBlock.text));
-      // Cast to "POST" to satisfy overload union; schema chosen at runtime by the function body
-      const schema =
-        input.formato === "CAROSELLO"
-          ? payloadSchemaFor("CAROSELLO")
-          : payloadSchemaFor("POST");
-      const payload = schema.parse(raw) as object;
+      const payload = payloadSchemaFor(input.formato).parse(raw) as object;
       return {
         payload,
         promptUsato: prompt,

@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { CONTENT_STATUSES, CONTENT_FORMATS, META_PLATFORMS } from "@/lib/meta/enums";
+import { StatusBadge } from "@/components/status-badge";
 
 interface Content {
   id: string;
@@ -61,7 +62,7 @@ export function MetaContentTable() {
                 <td className="p-2"><Link href={`/meta/${c.id}`} className="text-blue-600 hover:underline">{c.idea?.titolo ?? "—"}</Link></td>
                 <td className="p-2">{c.formato}</td>
                 <td className="p-2">{c.piattaforme.join(", ")}</td>
-                <td className="p-2">{c.status}</td>
+                <td className="p-2"><StatusBadge status={c.status} /></td>
                 <td className="p-2">{c.dataPrevista ? new Date(c.dataPrevista).toLocaleDateString("it-IT") : "—"}</td>
                 <td className="p-2">{c.assets.length}</td>
               </tr>
