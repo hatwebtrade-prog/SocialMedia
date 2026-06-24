@@ -65,6 +65,7 @@ enum Canale {
   META
   TIKTOK
   BLOG
+  EMAIL
 }
 
 enum ContentFormat {
@@ -73,6 +74,9 @@ enum ContentFormat {
   ARTICOLO
   REEL
   STORY
+  NEWSLETTER
+  PROMO_EMAIL
+  EDUCAZIONALE
 }
 
 enum ContentStatus {
