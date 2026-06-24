@@ -71,6 +71,8 @@ enum ContentFormat {
   POST
   CAROSELLO
   ARTICOLO
+  REEL
+  STORY
 }
 
 enum ContentStatus {

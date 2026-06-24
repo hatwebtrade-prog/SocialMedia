@@ -1,5 +1,5 @@
 export const CANALI = ["META", "TIKTOK", "BLOG"] as const;
-export const CONTENT_FORMATS = ["POST", "CAROSELLO"] as const;
+export const CONTENT_FORMATS = ["POST", "CAROSELLO", "REEL", "STORY"] as const;
 export const CONTENT_STATUSES = ["BOZZA", "DA_APPROVARE", "APPROVATO", "PROGRAMMATO", "PUBBLICATO"] as const;
 // Meta targets reuse the Platform enum values relevant to Meta
 export const META_PLATFORMS = ["INSTAGRAM", "FACEBOOK"] as const;
