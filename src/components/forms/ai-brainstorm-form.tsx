@@ -1,12 +1,14 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { IDEA_CATEGORIES } from "@/lib/brain/enums";
 
 export function AiBrainstormForm() {
   const [form, setForm] = useState({ prodotto: "", categoria: "", angolo: "", keywordSeed: "", count: 5 });
   const [status, setStatus] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [products, setProducts] = useState<{ id: string; nome: string }[]>([]);
+  useEffect(() => { fetch("/api/products").then((r) => r.json()).then((d) => setProducts(Array.isArray(d) ? d : [])).catch(() => setProducts([])); }, []);
 
   const submit = async () => {
     setBusy(true);
@@ -28,7 +30,10 @@ export function AiBrainstormForm() {
   return (
     <div className="max-w-lg">
       <div className="space-y-3">
-        <input className="w-full rounded border p-2" placeholder="Prodotto in focus (opzionale)" value={form.prodotto} onChange={(e) => setForm({ ...form, prodotto: e.target.value })} />
+        <select className="w-full rounded border p-2" value={form.prodotto} onChange={(e) => setForm({ ...form, prodotto: e.target.value })}>
+          <option value="">Prodotto in focus (opzionale)</option>
+          {products.map((p) => <option key={p.id} value={p.nome}>{p.nome}</option>)}
+        </select>
         <select className="w-full rounded border p-2" value={form.categoria} onChange={(e) => setForm({ ...form, categoria: e.target.value })}>
           <option value="">Categoria preferita (opzionale)</option>
           {IDEA_CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}

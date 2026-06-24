@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ManualIdeaForm } from "@/components/forms/manual-idea-form";
 import { AiBrainstormForm } from "@/components/forms/ai-brainstorm-form";
 import { ScopriKeyword } from "@/components/scopri-keyword";
+import { ImportProductsButton } from "@/components/import-products-button";
 
 type Tab = "ricerca" | "ai" | "manuale";
 const TABS: { key: Tab; label: string }[] = [
@@ -17,6 +18,7 @@ export default function GeneraPage() {
   return (
     <div>
       <h1 className="mb-4 text-2xl font-semibold">Genera idee</h1>
+      <ImportProductsButton />
       <div className="mb-5 flex gap-2 border-b text-sm">
         {TABS.map((t) => (
           <button key={t.key} onClick={() => setTab(t.key)}
