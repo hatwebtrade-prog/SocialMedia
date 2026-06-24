@@ -24,6 +24,11 @@ export default function BlogDetailPage({ params }: { params: Promise<{ id: strin
   const { id } = use(params);
   const [c, setC] = useState<Content | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [blogs, setBlogs] = useState<{ id: number; title: string; handle: string }[]>([]);
+  const [blogId, setBlogId] = useState("");
+  const [pubMsg, setPubMsg] = useState<string | null>(null);
+  const [pubBusy, setPubBusy] = useState(false);
+  useEffect(() => { fetch("/api/blog/shopify-blogs").then((r) => r.json()).then((d) => setBlogs(Array.isArray(d) ? d : [])).catch(() => setBlogs([])); }, []);
 
   const load = () =>
     fetch(`/api/blog/contents/${id}`)
@@ -40,6 +45,18 @@ export default function BlogDetailPage({ params }: { params: Promise<{ id: strin
     } catch {
       setErr("Aggiornamento stato non riuscito.");
     }
+  };
+
+  const pubblica = async () => {
+    const blog = blogs.find((b) => String(b.id) === blogId);
+    if (!blog) { setPubMsg("Scegli un blog Shopify."); return; }
+    setPubBusy(true); setPubMsg(null);
+    try {
+      const res = await fetch(`/api/blog/contents/${id}/publish`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ blogId: blog.id, blogHandle: blog.handle, published: true }) });
+      const json = await res.json();
+      setPubMsg(res.ok && json.status === "DONE" ? "Pubblicato su Shopify." : `Errore: ${json.error ?? "sconosciuto"}`);
+      await load();
+    } catch { setPubMsg("Errore di rete."); } finally { setPubBusy(false); }
   };
 
   if (err) return <p className="text-red-600">{err}</p>;
@@ -63,6 +80,19 @@ export default function BlogDetailPage({ params }: { params: Promise<{ id: strin
           <a href={c.shopifyArticleUrl} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">apri su Shopify</a>
         )}
       </div>
+      {c.status === "APPROVATO" && (
+        <div className="mb-4 rounded border bg-neutral-50 p-3 text-sm">
+          <strong>Pubblica su Shopify</strong>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <select value={blogId} onChange={(e) => setBlogId(e.target.value)} className="rounded border p-1">
+              <option value="">Scegli blog…</option>
+              {blogs.map((b) => <option key={b.id} value={String(b.id)}>{b.title}</option>)}
+            </select>
+            <button onClick={pubblica} disabled={pubBusy} className="rounded bg-green-600 px-3 py-1 text-white disabled:opacity-40">{pubBusy ? "Pubblico…" : "Pubblica su Shopify"}</button>
+          </div>
+          {pubMsg && <p className="mt-2">{pubMsg}</p>}
+        </div>
+      )}
       <p className="mb-3 text-xs text-neutral-500">Keyword: {p.keywordPrincipale} {p.keywordSecondarie?.length ? `· ${p.keywordSecondarie.join(", ")}` : ""}</p>
       {c.assets?.[0] && <img src={`/api/assets/${c.assets[0].id}`} alt="" className="mb-4 w-full max-w-md rounded" />}
       {p.puntiChiave?.length ? (
