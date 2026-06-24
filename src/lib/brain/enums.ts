@@ -18,3 +18,6 @@ export const IDEA_STATUSES = [
 export type IdeaCategoryValue = (typeof IDEA_CATEGORIES)[number];
 export type PlatformValue = (typeof PLATFORMS)[number];
 export type IdeaStatusValue = (typeof IDEA_STATUSES)[number];
+
+export const DESTINAZIONI = ["META", "BLOG", "TIKTOK", "EMAIL"] as const;
+export type DestinazioneValue = (typeof DESTINAZIONI)[number];

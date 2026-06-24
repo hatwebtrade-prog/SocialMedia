@@ -54,6 +54,13 @@ enum RunStatus {
   ERROR
 }
 
+enum Destinazione {
+  META
+  BLOG
+  TIKTOK
+  EMAIL
+}
+
 enum Canale {
   META
   TIKTOK
@@ -148,6 +155,7 @@ model Idea {
   status                 IdeaStatus     @default(NUOVA)
   note                   String?
   tags                   String[]       @default([])
+  destinazioni           Destinazione[] @default([])
   keyword                String?
   volumeRicerca          Int?
   difficolta             Int?
