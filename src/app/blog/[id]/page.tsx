@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, use } from "react";
+import { StatusBadge } from "@/components/status-badge";
 
 interface Asset { id: string; }
 interface Content {
@@ -13,6 +14,8 @@ interface Content {
     jsonLd?: string;
   };
   assets: Asset[];
+  publicationStatus?: string;
+  shopifyArticleUrl?: string | null;
 }
 
 const STATUSES = ["BOZZA", "DA_APPROVARE", "APPROVATO", "PROGRAMMATO", "PUBBLICATO"];
@@ -52,6 +55,13 @@ export default function BlogDetailPage({ params }: { params: Promise<{ id: strin
         <select className="rounded border p-1" value={c.status} onChange={(e) => setStatus(e.target.value)}>
           {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
         </select>
+      </div>
+      <div className="mb-3 flex items-center gap-2 text-sm">
+        <span className="text-neutral-500">Pubblicazione:</span>
+        <StatusBadge status={c.publicationStatus ?? "NON_INVIATO"} />
+        {c.shopifyArticleUrl && (
+          <a href={c.shopifyArticleUrl} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">apri su Shopify</a>
+        )}
       </div>
       <p className="mb-3 text-xs text-neutral-500">Keyword: {p.keywordPrincipale} {p.keywordSecondarie?.length ? `· ${p.keywordSecondarie.join(", ")}` : ""}</p>
       {c.assets?.[0] && <img src={`/api/assets/${c.assets[0].id}`} alt="" className="mb-4 w-full max-w-md rounded" />}
