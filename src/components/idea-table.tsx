@@ -3,26 +3,31 @@
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { IdeaFilters, type Filters } from "./idea-filters";
+import { StatusBadge } from "./status-badge";
+import { DESTINAZIONI } from "@/lib/brain/enums";
 
 interface Idea {
   id: string;
   titolo: string;
   category: string;
-  piattaformeConsigliate: string[];
   seoScore: number;
-  viralityScore: number;
   priority: number;
   status: string;
   keyword?: string | null;
   volumeRicerca?: number | null;
   difficolta?: number | null;
+  destinazioni?: string[];
   product?: { nome: string } | null;
+  source?: { key: string } | null;
 }
+
+const SOURCE_LABEL: Record<string, string> = { "ai-brainstorming": "AI", manuale: "Manuale", seozoom: "SEOZoom" };
 
 export function IdeaTable() {
   const [ideas, setIdeas] = useState<Idea[]>([]);
-  const [filters, setFilters] = useState<Filters>({ status: "", category: "", platform: "", source: "" });
+  const [filters, setFilters] = useState<Filters>({ status: "", category: "", platform: "", source: "", destinazione: "", priorita: "" });
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [destSel, setDestSel] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
 
   const load = useCallback(async () => {
@@ -33,8 +38,11 @@ export function IdeaTable() {
       if (filters.category) qs.set("category", filters.category);
       if (filters.platform) qs.set("platform", filters.platform);
       if (filters.source) qs.set("source", filters.source);
+      if (filters.destinazione) qs.set("destinazione", filters.destinazione);
+      if (filters.priorita) qs.set("priority", filters.priorita);
       const res = await fetch(`/api/ideas?${qs.toString()}`);
-      setIdeas(await res.json());
+      const data = await res.json();
+      setIdeas(Array.isArray(data) ? data : []);
       setSelected(new Set());
     } catch {
       setIdeas([]);
@@ -45,32 +53,40 @@ export function IdeaTable() {
 
   useEffect(() => { load(); }, [load]);
 
-  const toggle = (id: string) => {
-    setSelected((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
+  const toggle = (id: string) => setSelected((prev) => {
+    const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next;
+  });
+  const toggleDest = (d: string) => setDestSel((prev) => {
+    const next = new Set(prev); if (next.has(d)) next.delete(d); else next.add(d); return next;
+  });
 
   const bulkStatus = async (status: string) => {
     if (selected.size === 0) return;
-    await fetch("/api/ideas/bulk-status", {
-      method: "PATCH",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ ids: [...selected], status }),
-    });
+    await fetch("/api/ideas/bulk-status", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ ids: [...selected], status }) });
+    await load();
+  };
+  const bulkDestinazioni = async () => {
+    if (selected.size === 0 || destSel.size === 0) return;
+    await fetch("/api/ideas/bulk-destinazioni", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ ids: [...selected], destinazioni: [...destSel] }) });
+    setDestSel(new Set());
     await load();
   };
 
   return (
     <div>
       <IdeaFilters filters={filters} onChange={setFilters} />
-      <div className="mb-3 flex gap-2 text-sm">
+      <div className="mb-3 flex flex-wrap items-center gap-2 text-sm">
         <button onClick={() => bulkStatus("APPROVATA")} className="rounded bg-green-600 px-3 py-1 text-white disabled:opacity-40" disabled={selected.size === 0}>Approva ({selected.size})</button>
         <button onClick={() => bulkStatus("SCARTATA")} className="rounded bg-red-600 px-3 py-1 text-white disabled:opacity-40" disabled={selected.size === 0}>Scarta</button>
         <button onClick={() => bulkStatus("INTERESSANTE")} className="rounded bg-amber-500 px-3 py-1 text-white disabled:opacity-40" disabled={selected.size === 0}>Interessante</button>
+        <span className="ml-3 text-neutral-400">|</span>
+        <span className="text-neutral-500">Assegna a canali:</span>
+        {DESTINAZIONI.map((d) => (
+          <label key={d} className="flex items-center gap-1">
+            <input type="checkbox" checked={destSel.has(d)} onChange={() => toggleDest(d)} />{d}
+          </label>
+        ))}
+        <button onClick={bulkDestinazioni} className="rounded bg-blue-600 px-3 py-1 text-white disabled:opacity-40" disabled={selected.size === 0 || destSel.size === 0}>Assegna ({selected.size})</button>
       </div>
       {loading ? <p>Caricamento…</p> : (
         <table className="w-full border-collapse text-sm">
@@ -79,6 +95,8 @@ export function IdeaTable() {
               <th className="p-2"></th>
               <th className="p-2">Titolo</th>
               <th className="p-2">Categoria</th>
+              <th className="p-2">Fonte</th>
+              <th className="p-2">Destinazioni</th>
               <th className="p-2">Keyword</th>
               <th className="p-2">Vol.</th>
               <th className="p-2">Diff.</th>
@@ -93,15 +111,17 @@ export function IdeaTable() {
                 <td className="p-2"><input type="checkbox" checked={selected.has(i.id)} onChange={() => toggle(i.id)} /></td>
                 <td className="p-2"><Link href={`/ideas/${i.id}`} className="text-blue-600 hover:underline">{i.titolo}</Link></td>
                 <td className="p-2">{i.category}</td>
+                <td className="p-2">{i.source ? (SOURCE_LABEL[i.source.key] ?? i.source.key) : "—"}</td>
+                <td className="p-2">{i.destinazioni?.length ? i.destinazioni.join(", ") : "—"}</td>
                 <td className="p-2">{i.keyword ?? "—"}</td>
                 <td className="p-2">{i.volumeRicerca ?? "—"}</td>
                 <td className="p-2">{i.difficolta ?? "—"}</td>
                 <td className="p-2">{i.seoScore}</td>
                 <td className="p-2">{i.priority}</td>
-                <td className="p-2">{i.status}</td>
+                <td className="p-2"><StatusBadge status={i.status} /></td>
               </tr>
             ))}
-            {ideas.length === 0 && <tr><td colSpan={9} className="p-4 text-neutral-500">Nessuna idea.</td></tr>}
+            {ideas.length === 0 && <tr><td colSpan={11} className="p-4 text-neutral-500">Nessuna idea.</td></tr>}
           </tbody>
         </table>
       )}
