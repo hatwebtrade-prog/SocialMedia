@@ -25,6 +25,7 @@ services:
       SHOPIFY_SHOP_DOMAIN: "${SHOPIFY_SHOP_DOMAIN}"
       SHOPIFY_ADMIN_TOKEN: "${SHOPIFY_ADMIN_TOKEN}"
       SHOPIFY_STORE_URL: "${SHOPIFY_STORE_URL}"
+      N8N_WEBHOOK_SECRET: "${N8N_WEBHOOK_SECRET}"
     volumes:
       - uploads:/app/uploads
     depends_on:
