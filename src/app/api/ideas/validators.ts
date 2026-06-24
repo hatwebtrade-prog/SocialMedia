@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { IDEA_CATEGORIES, PLATFORMS, IDEA_STATUSES } from "@/lib/brain/enums";
+import { IDEA_CATEGORIES, PLATFORMS, IDEA_STATUSES, DESTINAZIONI } from "@/lib/brain/enums";
 
 export const manualIdeaSchema = z.object({
   titolo: z.string().min(1),
@@ -13,6 +13,7 @@ export const manualIdeaSchema = z.object({
   note: z.string().optional(),
   tags: z.array(z.string()).default([]),
   productId: z.string().optional(),
+  destinazioni: z.array(z.enum(DESTINAZIONI)).default([]),
 });
 
 export const updateIdeaSchema = manualIdeaSchema.partial();
@@ -20,4 +21,9 @@ export const updateIdeaSchema = manualIdeaSchema.partial();
 export const bulkStatusSchema = z.object({
   ids: z.array(z.string()).min(1),
   status: z.enum(IDEA_STATUSES),
+});
+
+export const bulkDestinazioniSchema = z.object({
+  ids: z.array(z.string()).min(1),
+  destinazioni: z.array(z.enum(DESTINAZIONI)),
 });
