@@ -1,9 +1,7 @@
 import Link from "next/link";
 const links = [
   { href: "/dashboard", label: "Dashboard Idee" },
-  { href: "/generate", label: "Genera Idee" },
-  { href: "/brain/scopri", label: "Scopri keyword" },
-  { href: "/manual", label: "Inserimento Manuale" },
+  { href: "/genera", label: "Genera idee" },
   { href: "/knowledge", label: "Knowledge Base" },
   { href: "/report", label: "Report" },
   { href: "/meta", label: "Area Meta" },
