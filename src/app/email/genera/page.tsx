@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { EMAIL_FORMATS } from "@/lib/email/enums";
+import { GenerationProgress } from "@/components/generation-progress";
 
 interface Idea { id: string; titolo: string; }
 
@@ -41,6 +42,7 @@ function EmailGeneraInner() {
         {EMAIL_FORMATS.map((f) => <option key={f} value={f}>{f}</option>)}
       </select>
       <button onClick={submit} disabled={busy} className="rounded bg-blue-600 px-4 py-2 text-white disabled:opacity-40">{busy ? "Genero…" : "Genera"}</button>
+      <GenerationProgress running={busy} estimatedMs={90000} label="Generazione email" />
       {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
     </div>
   );

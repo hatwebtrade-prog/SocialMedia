@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { CONTENT_FORMATS, META_PLATFORMS } from "@/lib/meta/enums";
+import { GenerationProgress } from "@/components/generation-progress";
 
 interface Idea { id: string; titolo: string; }
 
@@ -55,6 +56,7 @@ function GeneraInner() {
           <input type="number" min={3} max={10} className="w-full rounded border p-2" value={form.numeroSlide} onChange={(e) => setForm({ ...form, numeroSlide: Number(e.target.value) })} />
         )}
         <button onClick={submit} disabled={busy} className="rounded bg-blue-600 px-4 py-2 text-white disabled:opacity-40">{busy ? "Generazione…" : "Genera"}</button>
+        <GenerationProgress running={busy} estimatedMs={90000} label="Generazione contenuto" />
       </div>
       {status && <p className="mt-4 text-sm">{status}</p>}
     </div>

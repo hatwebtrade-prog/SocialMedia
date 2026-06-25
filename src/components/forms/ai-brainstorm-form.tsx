@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { IDEA_CATEGORIES } from "@/lib/brain/enums";
+import { GenerationProgress } from "@/components/generation-progress";
 
 export function AiBrainstormForm() {
   const [form, setForm] = useState({ prodotto: "", categoria: "", angolo: "", keywordSeed: "", count: 5 });
@@ -42,6 +43,7 @@ export function AiBrainstormForm() {
         <input className="w-full rounded border p-2" placeholder="Keyword seed (opzionale)" value={form.keywordSeed} onChange={(e) => setForm({ ...form, keywordSeed: e.target.value })} />
         <input type="number" min={1} max={20} className="w-full rounded border p-2" value={form.count} onChange={(e) => setForm({ ...form, count: Number(e.target.value) })} />
         <button onClick={submit} disabled={busy} className="rounded bg-blue-600 px-4 py-2 text-white disabled:opacity-40">{busy ? "Generazione…" : "Genera"}</button>
+        <GenerationProgress running={busy} estimatedMs={45000} label="Generazione idee" />
       </div>
       {status && <p className="mt-4 text-sm">{status}</p>}
     </div>

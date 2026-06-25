@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { GenerationProgress } from "@/components/generation-progress";
 
 interface Idea { id: string; titolo: string; }
 
@@ -42,6 +43,7 @@ function BlogGeneraInner() {
       <button onClick={submit} disabled={busy} className="rounded bg-blue-600 px-4 py-2 text-white disabled:opacity-40">
         {busy ? "Genero… (può richiedere ~1 min)" : "Genera"}
       </button>
+      <GenerationProgress running={busy} estimatedMs={150000} label="Generazione articolo" />
       {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
     </div>
   );

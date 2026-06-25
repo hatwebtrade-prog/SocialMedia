@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { GenerationProgress } from "@/components/generation-progress";
 
 interface Product { id: string; nome: string; }
 
@@ -47,6 +48,7 @@ export function ScopriKeyword() {
         </select>
         <input type="number" min={1} max={30} className="w-full rounded border p-2" value={topN} onChange={(e) => setTopN(Number(e.target.value))} />
         <button onClick={submit} disabled={busy} className="rounded bg-blue-600 px-4 py-2 text-white disabled:opacity-40">{busy ? "Scopro…" : "Scopri"}</button>
+        <GenerationProgress running={busy} estimatedMs={90000} label="Ricerca e generazione idee" />
       </div>
       {status && <p className="mt-4 text-sm">{status}</p>}
     </div>
