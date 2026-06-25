@@ -26,8 +26,8 @@ function sharedImageDeps(): Pick<ImageDeps, "loadMockup" | "callOpenAI" | "persi
       }
     },
 
-    callOpenAI: async (prompt, mockup, provider) => {
-      return generateWithProvider(provider ?? "GPT", prompt, mockup);
+    callOpenAI: async (prompt, mockup, provider, opts) => {
+      return generateWithProvider(provider ?? "GPT", prompt, mockup, opts);
     },
 
     persistAsset: async ({ input, prompt, bytes }) => {

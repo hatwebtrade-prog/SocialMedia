@@ -1,8 +1,5 @@
-const BASE = "https://platform.higgsfield.ai";
-const TEXT_MODEL = process.env.HIGGSFIELD_IMAGE_MODEL ?? "higgsfield-ai/soul/standard";
-const REF_MODEL = process.env.HIGGSFIELD_REF_MODEL ?? "higgsfield-ai/soul/reference";
-const POLL_INTERVAL_MS = 3000;
-const POLL_TIMEOUT_MS = 180000;
+const V1_SOUL = "https://platform.higgsfield.ai/v1/text2image/soul";
+const DEFAULT_STYLE = process.env.HIGGSFIELD_DEFAULT_STYLE ?? "1cb4b936-77bf-4f9a-9039-f3d349a4cdbe"; // "Realistic"
 
 interface HiggsfieldJob {
   status?: string;
@@ -10,54 +7,47 @@ interface HiggsfieldJob {
   images?: { url?: string }[];
 }
 
-/** Higgsfield image generation (async). Without a mockup → soul/standard (text-to-image).
- *  With a mockup → upload it (presigned S3) and use soul/reference image-to-image guided by the product.
- *  Auth: `Authorization: Key {key}:{secret}` (upload uses `hf-api-key`/`hf-secret`). */
-export async function higgsfieldImage(prompt: string, mockup?: Buffer): Promise<Buffer> {
+export async function higgsfieldImage(prompt: string, mockup?: Buffer, opts?: { styleId?: string; soulSize?: string }): Promise<Buffer> {
   const key = process.env.HIGGSFIELD_API_KEY;
   const secret = process.env.HIGGSFIELD_API_SECRET;
   if (!key || !secret) throw new Error("HIGGSFIELD_API_KEY/HIGGSFIELD_API_SECRET mancante");
   const auth = `Key ${key}:${secret}`;
 
-  let model = TEXT_MODEL;
-  const body: Record<string, unknown> = {
+  const params: Record<string, unknown> = {
     prompt,
-    aspect_ratio: "1:1",
-    resolution: process.env.HIGGSFIELD_RESOLUTION ?? "1080p",
+    width_and_height: opts?.soulSize ?? "1536x1536",
+    style_id: opts?.styleId ?? DEFAULT_STYLE,
+    quality: "1080p",
   };
   if (mockup) {
     const publicUrl = await uploadToHiggsfield(mockup, key, secret);
-    model = REF_MODEL;
-    body.input_images = [{ type: "image_url", image_url: publicUrl }];
+    params.input_images = [{ type: "image_url", image_url: publicUrl }];
   }
 
-  // 1. Enqueue the generation request.
-  const res = await fetch(`${BASE}/${model}`, {
+  const res = await fetch(V1_SOUL, {
     method: "POST",
     headers: { Authorization: auth, "content-type": "application/json" },
-    body: JSON.stringify(body),
+    body: JSON.stringify({ params }),
   });
   if (!res.ok) throw new Error(`Higgsfield HTTP ${res.status}: ${(await res.text().catch(() => "")).slice(0, 300)}`);
   let job: HiggsfieldJob = await res.json().catch(() => ({}));
 
   const immediate = job.images?.[0]?.url;
   if (job.status === "completed" && immediate) return downloadImage(immediate);
-
   const statusUrl = job.status_url;
   if (!statusUrl) throw new Error("Higgsfield: risposta senza status_url");
 
-  // 2. Poll until completed / failed / timeout.
-  const deadline = Date.now() + POLL_TIMEOUT_MS;
+  const deadline = Date.now() + 180000;
   while (Date.now() < deadline) {
     if (job.status === "completed") {
-      const url = job.images?.[0]?.url;
-      if (!url) throw new Error("Higgsfield: completato ma nessuna immagine restituita");
-      return downloadImage(url);
+      const u = job.images?.[0]?.url;
+      if (!u) throw new Error("Higgsfield: completato ma nessuna immagine restituita");
+      return downloadImage(u);
     }
-    if (job.status === "failed" || job.status === "canceled" || job.status === "error") {
+    if (job.status === "failed" || job.status === "canceled" || job.status === "error" || job.status === "nsfw") {
       throw new Error(`Higgsfield: generazione ${job.status}`);
     }
-    await sleep(POLL_INTERVAL_MS);
+    await sleep(3000);
     const st = await fetch(statusUrl, { headers: { Authorization: auth } });
     if (!st.ok) throw new Error(`Higgsfield status HTTP ${st.status}`);
     job = await st.json().catch(() => ({}));
@@ -67,7 +57,7 @@ export async function higgsfieldImage(prompt: string, mockup?: Buffer): Promise<
 
 /** Uploads bytes to Higgsfield via a presigned S3 URL; returns the hosted public URL. */
 async function uploadToHiggsfield(bytes: Buffer, key: string, secret: string): Promise<string> {
-  const gen = await fetch(`${BASE}/files/generate-upload-url`, {
+  const gen = await fetch("https://platform.higgsfield.ai/files/generate-upload-url", {
     method: "POST",
     headers: { "hf-api-key": key, "hf-secret": secret, "content-type": "application/json" },
     body: JSON.stringify({ content_type: "image/png" }),

@@ -12,7 +12,7 @@ export interface ImageGenInput {
 export interface ImageDeps {
   loadContent: (contentId: string, slideIndex: number | null) => Promise<{ ideaCreativa: string; slideText: string | null }>;
   loadMockup: (productId: string) => Promise<Buffer | null>;
-  callOpenAI: (prompt: string, mockup?: Buffer, provider?: ImageProvider) => Promise<Buffer>;
+  callOpenAI: (prompt: string, mockup?: Buffer, provider?: ImageProvider, opts?: { styleId?: string; soulSize?: string }) => Promise<Buffer>;
   persistAsset: (args: { input: ImageGenInput; prompt: string; bytes: Buffer }) => Promise<{ assetId: string }>;
 }
 
