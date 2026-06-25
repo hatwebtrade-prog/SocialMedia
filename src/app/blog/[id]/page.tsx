@@ -2,6 +2,7 @@
 
 import { useEffect, useState, use } from "react";
 import { StatusBadge } from "@/components/status-badge";
+import { GenerationProgress } from "@/components/generation-progress";
 
 interface Asset { id: string; }
 interface Content {
@@ -28,7 +29,13 @@ export default function BlogDetailPage({ params }: { params: Promise<{ id: strin
   const [blogId, setBlogId] = useState("");
   const [pubMsg, setPubMsg] = useState<string | null>(null);
   const [pubBusy, setPubBusy] = useState(false);
+  const [products, setProducts] = useState<{ id: string; nome: string; imagePath: string | null }[]>([]);
+  const [refProductId, setRefProductId] = useState("");
+  const [useMockup, setUseMockup] = useState(false);
+  const [imgBusy, setImgBusy] = useState(false);
+  const [imgMsg, setImgMsg] = useState<string | null>(null);
   useEffect(() => { fetch("/api/blog/shopify-blogs").then((r) => r.json()).then((d) => setBlogs(Array.isArray(d) ? d : [])).catch(() => setBlogs([])); }, []);
+  useEffect(() => { fetch("/api/products").then((r) => r.json()).then((d) => setProducts(Array.isArray(d) ? d : [])).catch(() => setProducts([])); }, []);
 
   const load = () =>
     fetch(`/api/blog/contents/${id}`)
@@ -57,6 +64,19 @@ export default function BlogDetailPage({ params }: { params: Promise<{ id: strin
       setPubMsg(res.ok && json.status === "DONE" ? "Pubblicato su Shopify." : `Errore: ${json.error ?? "sconosciuto"}`);
       await load();
     } catch { setPubMsg("Errore di rete."); } finally { setPubBusy(false); }
+  };
+
+  const genImage = async () => {
+    setImgBusy(true); setImgMsg(null);
+    try {
+      const res = await fetch(`/api/blog/contents/${id}/image`, {
+        method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ productId: refProductId || undefined, useMockup: useMockup && !!refProductId }),
+      });
+      const json = await res.json();
+      setImgMsg(res.ok && json.status === "DONE" ? "Immagine generata." : `Errore: ${json.error ?? "sconosciuto"}`);
+      await load();
+    } catch { setImgMsg("Errore di rete."); } finally { setImgBusy(false); }
   };
 
   if (err) return <p className="text-red-600">{err}</p>;
@@ -94,7 +114,30 @@ export default function BlogDetailPage({ params }: { params: Promise<{ id: strin
         </div>
       )}
       <p className="mb-3 text-xs text-neutral-500">Keyword: {p.keywordPrincipale} {p.keywordSecondarie?.length ? `· ${p.keywordSecondarie.join(", ")}` : ""}</p>
-      {c.assets?.[0] && <img src={`/api/assets/${c.assets[0].id}`} alt="" className="mb-4 w-full max-w-md rounded" />}
+      <div className="mb-4 rounded border bg-neutral-50 p-3 text-sm">
+        <div className="mb-2 font-medium">Immagine in evidenza</div>
+        {c.assets?.[0] && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={`/api/assets/${c.assets[0].id}`} alt="" className="mb-3 w-full max-w-md rounded border" />
+        )}
+        <div className="flex flex-wrap items-center gap-3">
+          <select value={refProductId} onChange={(e) => setRefProductId(e.target.value)} className="rounded border p-1">
+            <option value="">Nessun prodotto</option>
+            {products.filter((pr) => pr.imagePath).map((pr) => <option key={pr.id} value={pr.id}>{pr.nome}</option>)}
+          </select>
+          <label className="flex items-center gap-1">
+            <input type="checkbox" checked={useMockup} onChange={(e) => setUseMockup(e.target.checked)} disabled={!refProductId} />
+            Inserisci il mockup nel contesto (image-edit)
+          </label>
+          {refProductId && useMockup && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={`/api/products/${refProductId}/image`} alt="" className="h-14 w-14 rounded border object-contain" />
+          )}
+          <button onClick={genImage} disabled={imgBusy} className="rounded bg-emerald-600 px-3 py-1 text-white disabled:opacity-40">{imgBusy ? "Genero…" : (c.assets?.[0] ? "Rigenera immagine" : "Genera immagine")}</button>
+        </div>
+        <GenerationProgress running={imgBusy} estimatedMs={90000} label="Generazione immagine" />
+        {imgMsg && <p className="mt-2">{imgMsg}</p>}
+      </div>
       {p.puntiChiave?.length ? (
         <div className="mb-4 rounded bg-amber-50 p-3 text-sm">
           <strong>Punti chiave</strong>
