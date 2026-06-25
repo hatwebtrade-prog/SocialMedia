@@ -7,6 +7,7 @@ describe("normalizeProducts", () => {
       data: { products: { edges: [
         { node: {
           handle: "magnesio-supremo", title: "Magnesio Supremo", productType: "Integratori",
+          featuredImage: { url: "https://img/x.jpg" },
           metafields: { edges: [
             { node: { key: "ingredienti_dettagliati", value: "Magnesio citrato" } },
             { node: { key: "posologia", value: "1 misurino/die" } },
@@ -21,8 +22,22 @@ describe("normalizeProducts", () => {
     expect(out[0].url).toBe("https://agocap.it/products/magnesio-supremo");
     expect(out[0].categoria).toBe("Integratori");
     expect(out[0].metafields.posologia).toBe("1 misurino/die");
+    expect(out[0].imageUrl).toBe("https://img/x.jpg");
   });
   it("returns [] for a malformed response", () => {
     expect(normalizeProducts({}, "https://x")).toEqual([]);
+  });
+  it("maps imageUrl to null when featuredImage is absent", () => {
+    const raw = {
+      data: { products: { edges: [
+        { node: {
+          handle: "no-image", title: "No Image", productType: "Test",
+          metafields: { edges: [] },
+        } },
+      ] } },
+    };
+    const out = normalizeProducts(raw, "https://agocap.it");
+    expect(out).toHaveLength(1);
+    expect(out[0].imageUrl).toBeNull();
   });
 });

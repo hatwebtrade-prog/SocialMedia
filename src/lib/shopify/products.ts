@@ -4,6 +4,7 @@ export interface ShopProduct {
   url: string;
   categoria: string;
   metafields: Record<string, string>;
+  imageUrl: string | null;
 }
 
 // NOTE: GraphQL query + API version verified live (Task 12).
@@ -20,7 +21,7 @@ export function normalizeProducts(raw: unknown, store: string): ShopProduct[] {
   if (!Array.isArray(edges)) return [];
   const out: ShopProduct[] = [];
   for (const e of edges) {
-    const node = (e as { node?: Record<string, unknown> })?.node;
+    const node = (e as { node?: Record<string, unknown> & { featuredImage?: unknown } })?.node;
     if (!node || typeof node.handle !== "string") continue;
     const metafields: Record<string, string> = {};
     const mfEdges = (node.metafields as { edges?: unknown[] })?.edges;
@@ -36,6 +37,7 @@ export function normalizeProducts(raw: unknown, store: string): ShopProduct[] {
       url: `${store}/products/${node.handle}`,
       categoria: typeof node.productType === "string" ? node.productType : "",
       metafields,
+      imageUrl: typeof (node.featuredImage as { url?: unknown } | undefined)?.url === "string" ? (node.featuredImage as { url: string }).url : null,
     });
   }
   return out;
@@ -46,7 +48,7 @@ export async function fetchProductsWithMetafields(): Promise<ShopProduct[]> {
   const shop = process.env.SHOPIFY_SHOP_DOMAIN;
   const token = process.env.SHOPIFY_ADMIN_TOKEN;
   if (!shop || !token) throw new Error("SHOPIFY_SHOP_DOMAIN o SHOPIFY_ADMIN_TOKEN mancante");
-  const query = `{ products(first: 50) { edges { node { handle title productType metafields(first: 30) { edges { node { key value } } } } } } }`;
+  const query = `{ products(first: 50) { edges { node { handle title productType featuredImage { url } metafields(first: 30) { edges { node { key value } } } } } } }`;
   const res = await fetch(`https://${shop}/admin/api/${API_VERSION}/graphql.json`, {
     method: "POST",
     headers: { "X-Shopify-Access-Token": token, "Content-Type": "application/json", Accept: "application/json" },

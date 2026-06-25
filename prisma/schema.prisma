@@ -110,6 +110,7 @@ model Product {
   target      String?
   url         String?
   handle      String?         @unique
+  imagePath   String?
   attivo      Boolean         @default(true)
   createdAt   DateTime        @default(now())
   ideas       Idea[]
