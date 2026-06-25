@@ -1,3 +1,5 @@
+> ⚠️ **SUPERSEDED** da `2026-06-25-agocap-image-system-rebuild-design.md` (Spec A): la gestione Higgsfield UGC è confluita nel rifacimento del sistema immagini (brief a filtri + provider). Conservato come riferimento di ricerca Higgsfield.
+
 # Higgsfield UGC Images — Design (sotto-progetto 1)
 
 - **Data:** 2026-06-25
