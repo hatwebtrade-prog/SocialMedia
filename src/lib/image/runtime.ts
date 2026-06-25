@@ -12,19 +12,8 @@ interface MetaPayloadShape {
   slides?: Array<{ testo?: string }>;
 }
 
-export function buildImageRuntimeDeps(): ImageDeps {
+function sharedImageDeps(): Pick<ImageDeps, "loadMockup" | "callOpenAI" | "persistAsset"> {
   return {
-    loadContent: async (contentId, slideIndex) => {
-      const content = await prisma.generatedContent.findUniqueOrThrow({ where: { id: contentId } });
-      const payload = (content.payload ?? {}) as MetaPayloadShape;
-      const ideaCreativa = payload.ideaCreativa ?? "";
-      const slideText =
-        slideIndex != null && payload.slides?.[slideIndex]?.testo
-          ? payload.slides[slideIndex]!.testo!
-          : null;
-      return { ideaCreativa, slideText };
-    },
-
     loadMockup: async (productId) => {
       const product = await prisma.product.findUnique({ where: { id: productId }, select: { imagePath: true } });
       if (!product?.imagePath) return null;
@@ -79,5 +68,32 @@ export function buildImageRuntimeDeps(): ImageDeps {
       }
       return { assetId: asset.id };
     },
+  };
+}
+
+export function buildImageRuntimeDeps(): ImageDeps {
+  return {
+    loadContent: async (contentId, slideIndex) => {
+      const content = await prisma.generatedContent.findUniqueOrThrow({ where: { id: contentId } });
+      const payload = (content.payload ?? {}) as MetaPayloadShape;
+      const ideaCreativa = payload.ideaCreativa ?? "";
+      const slideText =
+        slideIndex != null && payload.slides?.[slideIndex]?.testo
+          ? payload.slides[slideIndex]!.testo!
+          : null;
+      return { ideaCreativa, slideText };
+    },
+    ...sharedImageDeps(),
+  };
+}
+
+export function buildBlogImageDeps(): ImageDeps {
+  return {
+    loadContent: async (contentId) => {
+      const content = await prisma.generatedContent.findUniqueOrThrow({ where: { id: contentId } });
+      const payload = (content.payload ?? {}) as { titoloSeo?: string };
+      return { ideaCreativa: payload.titoloSeo ?? "", slideText: null };
+    },
+    ...sharedImageDeps(),
   };
 }
