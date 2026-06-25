@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { fetchProductsWithMetafields, type ShopProduct } from "./products";
+import { downloadAndResizeProductImage } from "./product-image";
 
 export interface MappedProduct {
   handle: string;
@@ -27,10 +28,11 @@ export async function importShopifyProducts(): Promise<{ imported: number }> {
   let imported = 0;
   for (const p of products) {
     const data = mapShopProductToProduct(p);
+    const imagePath = p.imageUrl ? await downloadAndResizeProductImage(p.imageUrl, p.handle) : null;
     await prisma.product.upsert({
       where: { handle: data.handle },
-      update: { nome: data.nome, categoria: data.categoria, url: data.url, descrizione: data.descrizione, ingredienti: data.ingredienti },
-      create: data,
+      update: { nome: data.nome, categoria: data.categoria, url: data.url, descrizione: data.descrizione, ingredienti: data.ingredienti, ...(imagePath ? { imagePath } : {}) },
+      create: { ...data, ...(imagePath ? { imagePath } : {}) },
     });
     imported++;
   }
