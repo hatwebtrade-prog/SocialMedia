@@ -7,7 +7,7 @@ export async function higgsfieldImage(prompt: string, _mockup?: Buffer): Promise
   const res = await fetch(`https://platform.higgsfield.ai/${MODEL}`, {
     method: "POST",
     headers: { Authorization: `Key ${key}:${secret}`, "content-type": "application/json" },
-    body: JSON.stringify({ prompt, aspect_ratio: "1:1", resolution: "1024p" }),
+    body: JSON.stringify({ prompt, aspect_ratio: "1:1", resolution: process.env.HIGGSFIELD_RESOLUTION ?? "1080p" }),
   });
   if (!res.ok) throw new Error(`Higgsfield HTTP ${res.status}: ${(await res.text().catch(() => "")).slice(0, 300)}`);
   const json: Record<string, unknown> = await res.json().catch(() => ({}));
