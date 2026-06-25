@@ -17,4 +17,6 @@ export const updateContentSchema = z.object({
 
 export const imageInputSchema = z.object({
   slideIndex: z.number().int().min(0).nullable().optional(),
+  productId: z.string().optional(),
+  useMockup: z.boolean().optional(),
 });

@@ -19,6 +19,6 @@ export async function POST(request: Request, { params }: Ctx) {
   const run = injected.__run ?? generateImageAsset;
   const deps = injected.__run ? ({} as never) : buildImageRuntimeDeps();
 
-  const result = await run({ contentId: id, slideIndex }, deps);
+  const result = await run({ contentId: id, slideIndex, productId: parsed.data.productId, useMockup: parsed.data.useMockup }, deps);
   return NextResponse.json(result, { status: result.status === "ERROR" ? 502 : 200 });
 }

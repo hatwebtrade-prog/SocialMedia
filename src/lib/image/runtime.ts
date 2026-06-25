@@ -1,3 +1,7 @@
+import sharp from "sharp";
+import path from "node:path";
+import { readFileSync } from "node:fs";
+import { toFile } from "openai";
 import { prisma } from "@/lib/prisma";
 import { getOpenAI, IMAGE_MODEL } from "./openai";
 import { saveAssetFile, deleteAssetFile } from "./store";
@@ -21,8 +25,27 @@ export function buildImageRuntimeDeps(): ImageDeps {
       return { ideaCreativa, slideText };
     },
 
-    callOpenAI: async (prompt) => {
+    loadMockup: async (productId) => {
+      const product = await prisma.product.findUnique({ where: { id: productId }, select: { imagePath: true } });
+      if (!product?.imagePath) return null;
+      try {
+        const abs = path.join(process.cwd(), product.imagePath);
+        const buf = readFileSync(abs);
+        return await sharp(buf).resize(1024, 1024, { fit: "contain", background: { r: 255, g: 255, b: 255, alpha: 1 } }).png().toBuffer();
+      } catch {
+        return null;
+      }
+    },
+
+    callOpenAI: async (prompt, mockup) => {
       const client = getOpenAI();
+      if (mockup) {
+        const file = await toFile(mockup, "mockup.png", { type: "image/png" });
+        const res = await client.images.edit({ model: IMAGE_MODEL, image: file, prompt, size: "1024x1024" });
+        const b64 = res.data?.[0]?.b64_json;
+        if (!b64) throw new Error("OpenAI non ha restituito un'immagine (edit)");
+        return Buffer.from(b64, "base64");
+      }
       const res = await client.images.generate({ model: IMAGE_MODEL, prompt, size: "1024x1024" });
       const b64 = res.data?.[0]?.b64_json;
       if (!b64) throw new Error("OpenAI non ha restituito un'immagine");

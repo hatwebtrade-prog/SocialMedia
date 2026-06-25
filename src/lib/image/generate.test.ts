@@ -4,6 +4,7 @@ import { generateImageAsset } from "@/lib/image/generate";
 function makeDeps(overrides = {}) {
   return {
     loadContent: vi.fn().mockResolvedValue({ ideaCreativa: "concept", slideText: null }),
+    loadMockup: vi.fn().mockResolvedValue(Buffer.from("mockbytes")),
     callOpenAI: vi.fn().mockResolvedValue(Buffer.from("fakepng")),
     persistAsset: vi.fn().mockResolvedValue({ assetId: "asset_1" }),
     ...overrides,
@@ -25,5 +26,19 @@ describe("generateImageAsset", () => {
     expect(res.status).toBe("ERROR");
     expect(res.error).toContain("openai down");
     expect(deps.persistAsset).not.toHaveBeenCalled();
+  });
+
+  it("loads the mockup and passes it to OpenAI when useMockup", async () => {
+    const deps = makeDeps();
+    await generateImageAsset({ contentId: "c1", slideIndex: null, productId: "p1", useMockup: true }, deps as any);
+    expect(deps.loadMockup).toHaveBeenCalledWith("p1");
+    expect((deps.callOpenAI as any).mock.calls[0][1]).toBeInstanceOf(Buffer);
+  });
+
+  it("does NOT load a mockup when useMockup is false/absent", async () => {
+    const deps = makeDeps();
+    await generateImageAsset({ contentId: "c1", slideIndex: null }, deps as any);
+    expect(deps.loadMockup).not.toHaveBeenCalled();
+    expect((deps.callOpenAI as any).mock.calls[0][1]).toBeUndefined();
   });
 });
