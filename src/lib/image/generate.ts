@@ -28,8 +28,8 @@ export async function generateImageAsset(
 ): Promise<ImageGenResult> {
   try {
     const { ideaCreativa, slideText } = await deps.loadContent(input.contentId, input.slideIndex);
-    const prompt = buildImagePrompt({ ideaCreativa, slideText });
     const mockup = input.useMockup && input.productId ? await deps.loadMockup(input.productId) : null;
+    const prompt = buildImagePrompt({ ideaCreativa, slideText, hasMockup: !!mockup });
     const bytes = await deps.callOpenAI(prompt, mockup ?? undefined, input.provider);
     const { assetId } = await deps.persistAsset({ input, prompt, bytes });
     return { status: "DONE", assetId };

@@ -11,4 +11,16 @@ describe("buildImagePrompt", () => {
     const p = buildImagePrompt({ ideaCreativa: "concept", slideText: "Slide 1: i benefici" });
     expect(p).toContain("Slide 1: i benefici");
   });
+
+  it("pushes photorealism", () => {
+    const p = buildImagePrompt({ ideaCreativa: "concept", slideText: null }).toLowerCase();
+    expect(p).toContain("iperrealistica");
+  });
+
+  it("adds product-preservation guidance only when a mockup is used", () => {
+    const withMockup = buildImagePrompt({ ideaCreativa: "concept", slideText: null, hasMockup: true });
+    const without = buildImagePrompt({ ideaCreativa: "concept", slideText: null, hasMockup: false });
+    expect(withMockup).toContain("IDENTICO");
+    expect(without).not.toContain("IDENTICO");
+  });
 });

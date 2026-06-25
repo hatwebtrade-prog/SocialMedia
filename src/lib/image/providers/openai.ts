@@ -5,12 +5,12 @@ export async function openaiImage(prompt: string, mockup?: Buffer): Promise<Buff
   const client = getOpenAI();
   if (mockup) {
     const file = await toFile(mockup, "mockup.png", { type: "image/png" });
-    const res = await client.images.edit({ model: IMAGE_MODEL, image: file, prompt, size: "1024x1024" });
+    const res = await client.images.edit({ model: IMAGE_MODEL, image: file, prompt, size: "1024x1024", quality: "high" });
     const b64 = res.data?.[0]?.b64_json;
     if (!b64) throw new Error("OpenAI non ha restituito un'immagine (edit)");
     return Buffer.from(b64, "base64");
   }
-  const res = await client.images.generate({ model: IMAGE_MODEL, prompt, size: "1024x1024" });
+  const res = await client.images.generate({ model: IMAGE_MODEL, prompt, size: "1024x1024", quality: "high" });
   const b64 = res.data?.[0]?.b64_json;
   if (!b64) throw new Error("OpenAI non ha restituito un'immagine");
   return Buffer.from(b64, "base64");
