@@ -19,8 +19,7 @@ export interface BlogDeps {
   loadContext: (ideaId: string) => Promise<{ idea: BlogIdea; kbContext: string; prodotti: BlogProductInfo[] }>;
   loadSeoData: (idea: BlogIdea) => Promise<BlogSeo>;
   callClaude: (args: { idea: BlogIdea; kbContext: string; prodotti: BlogProductInfo[]; seo: BlogSeo }) => Promise<BlogClaudeResult>;
-  generateImage: (args: { titoloSeo: string }) => Promise<{ bytes: Buffer; prompt: string }>;
-  persist: (args: { input: BlogGenInput; payload: object; claude: BlogClaudeResult; image: { bytes: Buffer; prompt: string } }) => Promise<{ contentId: string }>;
+  persist: (args: { input: BlogGenInput; payload: object; claude: BlogClaudeResult }) => Promise<{ contentId: string }>;
 }
 
 export interface BlogGenResult {
@@ -36,8 +35,7 @@ export async function generateBlogArticle(input: BlogGenInput, deps: BlogDeps): 
     const claude = await deps.callClaude({ idea, kbContext, prodotti, seo });
     const jsonLd = buildArticleJsonLd(claude.payload);
     const payload = { ...claude.payload, jsonLd };
-    const image = await deps.generateImage({ titoloSeo: claude.payload.titoloSeo });
-    const { contentId } = await deps.persist({ input, payload, claude, image });
+    const { contentId } = await deps.persist({ input, payload, claude });
     return { status: "DONE", contentId };
   } catch (err) {
     return { status: "ERROR", error: err instanceof Error ? err.message : String(err) };

@@ -2,9 +2,6 @@ import { prisma } from "@/lib/prisma";
 import { getClaude, BRAINSTORM_MODEL } from "@/lib/claude";
 import { buildKbContext } from "@/lib/brain/context";
 import { stripFences } from "@/lib/meta/runtime";
-import { getOpenAI, IMAGE_MODEL } from "@/lib/image/openai";
-import { saveAssetFile } from "@/lib/image/store";
-import { buildImagePrompt } from "@/lib/image/prompt";
 import { fetchKeywords } from "@/lib/seozoom/client";
 import type { NormalizedKeyword } from "@/lib/seozoom/select";
 import { fetchProductsWithMetafields } from "@/lib/shopify/products";
@@ -78,16 +75,7 @@ export function buildBlogDeps(): BlogDeps {
       };
     },
 
-    generateImage: async ({ titoloSeo }) => {
-      const prompt = buildImagePrompt({ ideaCreativa: titoloSeo, slideText: null });
-      const client = getOpenAI();
-      const res = await client.images.generate({ model: IMAGE_MODEL, prompt, size: "1024x1024" });
-      const b64 = res.data?.[0]?.b64_json;
-      if (!b64) throw new Error("OpenAI non ha restituito un'immagine");
-      return { bytes: Buffer.from(b64, "base64"), prompt };
-    },
-
-    persist: async ({ input, payload, claude, image }) => {
+    persist: async ({ input, payload, claude }) => {
       const content = await prisma.generatedContent.create({
         data: {
           ideaId: input.ideaId,
@@ -102,16 +90,6 @@ export function buildBlogDeps(): BlogDeps {
           outputGrezzo: (claude.rawOutput ?? {}) as object,
         },
       });
-      const asset = await prisma.generatedAsset.create({
-        data: { contentId: content.id, slideIndex: null, tipo: "IMMAGINE", prompt: image.prompt, modello: IMAGE_MODEL, path: "" },
-      });
-      try {
-        const relPath = saveAssetFile(content.id, asset.id, image.bytes);
-        await prisma.generatedAsset.update({ where: { id: asset.id }, data: { path: relPath } });
-      } catch (err) {
-        await prisma.generatedAsset.delete({ where: { id: asset.id } }).catch(() => {});
-        throw err;
-      }
       return { contentId: content.id };
     },
   };

@@ -15,7 +15,6 @@ function makeDeps(overrides = {}) {
     }),
     loadSeoData: vi.fn().mockResolvedValue({ keywordPrincipale: "magnesio sonno", keywordSecondarie: [] }),
     callClaude: vi.fn().mockResolvedValue({ payload: article, promptUsato: "P", modello: "claude-opus-4-8", inputTokens: 1, outputTokens: 1, rawOutput: {} }),
-    generateImage: vi.fn().mockResolvedValue({ bytes: Buffer.from("img"), prompt: "imgprompt" }),
     persist: vi.fn().mockResolvedValue({ contentId: "c1" }),
     ...overrides,
   };
@@ -31,7 +30,7 @@ describe("generateBlogArticle", () => {
     expect(typeof persisted.jsonLd).toBe("string");
     expect(persisted.jsonLd).toContain("FAQPage");
     expect(persisted.titoloSeo).toBe("Magnesio e sonno");
-    expect((deps.generateImage as any).mock.calls[0][0].titoloSeo).toBe("Magnesio e sonno");
+    expect((deps.persist as any).mock.calls[0][0].image).toBeUndefined();
   });
 
   it("returns ERROR when Claude fails (nothing persisted)", async () => {
