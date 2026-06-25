@@ -4,7 +4,6 @@ import { readFileSync } from "node:fs";
 import { prisma } from "@/lib/prisma";
 import { IMAGE_MODEL } from "./openai";
 import { generateWithProvider } from "./providers";
-import { createSoulId, uploadHiggsfieldImage } from "./providers/higgsfield";
 import { saveAssetFile, deleteAssetFile } from "./store";
 import type { ImageDeps } from "./generate";
 
@@ -31,22 +30,11 @@ function sharedImageDeps(): Pick<ImageDeps, "loadMockup" | "callOpenAI" | "persi
       return generateWithProvider(provider ?? "GPT", prompt, mockup, opts);
     },
 
+    // Returns a previously-cached SoulId only (no slow synchronous creation in the request path).
+    // The product mockup is applied directly via image_reference in the Higgsfield provider.
     ensureHiggsfieldRef: async (productId) => {
-      const key = process.env.HIGGSFIELD_API_KEY, secret = process.env.HIGGSFIELD_API_SECRET;
-      if (!key || !secret) return null;
-      const product = await prisma.product.findUnique({ where: { id: productId }, select: { nome: true, imagePath: true, higgsfieldSoulId: true } });
-      if (!product) return null;
-      if (product.higgsfieldSoulId) return product.higgsfieldSoulId;
-      if (!product.imagePath) return null;
-      try {
-        const { readFileSync } = await import("node:fs");
-        const pathMod = await import("node:path");
-        const buf = readFileSync(pathMod.join(process.cwd(), product.imagePath));
-        const publicUrl = await uploadHiggsfieldImage(buf, key, secret);
-        const soulId = await createSoulId(product.nome, publicUrl, key, secret);
-        if (soulId) await prisma.product.update({ where: { id: productId }, data: { higgsfieldSoulId: soulId } });
-        return soulId;
-      } catch { return null; }
+      const product = await prisma.product.findUnique({ where: { id: productId }, select: { higgsfieldSoulId: true } });
+      return product?.higgsfieldSoulId ?? null;
     },
 
     persistAsset: async ({ input, prompt, bytes }) => {

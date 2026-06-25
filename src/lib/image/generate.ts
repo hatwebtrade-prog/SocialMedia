@@ -39,6 +39,8 @@ export async function generateImageAsset(
       : buildImagePrompt({ ideaCreativa, slideText, hasMockup: !!mockup });
     const soulSize = briefDimensions(input.brief?.formato).soul;
     const styleId = input.styleId ?? input.brief?.stile;
+    // Higgsfield uses the mockup directly via image_reference (fast); a cached SoulId (custom_reference)
+    // is used only if already created for the product (no slow synchronous creation in the request path).
     let customReferenceId: string | undefined;
     if (input.provider === "HIGGSFIELD" && input.useMockup && input.productId && deps.ensureHiggsfieldRef) {
       customReferenceId = (await deps.ensureHiggsfieldRef(input.productId)) ?? undefined;

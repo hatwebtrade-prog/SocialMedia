@@ -2,10 +2,13 @@ const V1_SOUL = "https://platform.higgsfield.ai/v1/text2image/soul";
 const DEFAULT_STYLE = process.env.HIGGSFIELD_DEFAULT_STYLE ?? "1cb4b936-77bf-4f9a-9039-f3d349a4cdbe"; // "Realistic"
 
 interface HiggsfieldJob {
+  id?: string;
   status?: string;
   status_url?: string;
   images?: { url?: string }[];
 }
+
+const HF_STATUS = (id: string) => `https://platform.higgsfield.ai/requests/${id}/status`;
 
 export async function higgsfieldImage(prompt: string, mockup?: Buffer, opts?: { styleId?: string; soulSize?: string; customReferenceId?: string }): Promise<Buffer> {
   const key = process.env.HIGGSFIELD_API_KEY;
@@ -19,12 +22,15 @@ export async function higgsfieldImage(prompt: string, mockup?: Buffer, opts?: { 
     style_id: opts?.styleId ?? DEFAULT_STYLE,
     quality: "1080p",
   };
+  // v1 Soul reference fields (verified live): `custom_reference` (SoulId) and `image_reference` (object).
   if (opts?.customReferenceId) {
-    params.custom_reference_id = opts.customReferenceId;
+    params.custom_reference = opts.customReferenceId;
     params.custom_reference_strength = 1;
-  } else if (mockup) {
+  }
+  if (mockup) {
     const publicUrl = await uploadToHiggsfield(mockup, key, secret);
-    params.input_images = [{ type: "image_url", image_url: publicUrl }];
+    params.image_reference = { type: "image_url", image_url: publicUrl };
+    params.image_reference_strength = 0.85;
   }
 
   const res = await fetch(V1_SOUL, {
@@ -37,8 +43,9 @@ export async function higgsfieldImage(prompt: string, mockup?: Buffer, opts?: { 
 
   const immediate = job.images?.[0]?.url;
   if (job.status === "completed" && immediate) return downloadImage(immediate);
-  const statusUrl = job.status_url;
-  if (!statusUrl) throw new Error("Higgsfield: risposta senza status_url");
+  // v1 /text2image/soul returns {id, jobs} without status_url; poll /requests/{id}/status.
+  const statusUrl = job.status_url ?? (job.id ? HF_STATUS(job.id) : null);
+  if (!statusUrl) throw new Error("Higgsfield: risposta senza id/status_url");
 
   const deadline = Date.now() + 180000;
   while (Date.now() < deadline) {
