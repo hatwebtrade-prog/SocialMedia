@@ -16,9 +16,23 @@ export const updateContentSchema = z.object({
   piattaforme: z.array(z.enum(META_PLATFORMS)).optional(),
 });
 
+const briefSchema = z.object({
+  soggetto: z.string().optional(),
+  ambientazione: z.string().optional(),
+  luce: z.string().optional(),
+  inquadratura: z.string().optional(),
+  mood: z.string().optional(),
+  formato: z.enum(["verticale", "quadrato", "orizzontale"]).optional(),
+  stile: z.string().optional(),
+  tieneProdotto: z.boolean().optional(),
+  note: z.string().optional(),
+}).optional();
+
 export const imageInputSchema = z.object({
   slideIndex: z.number().int().min(0).nullable().optional(),
   productId: z.string().optional(),
   useMockup: z.boolean().optional(),
   provider: z.enum(IMAGE_PROVIDERS).optional(),
+  brief: briefSchema,
+  styleId: z.string().optional(),
 });
