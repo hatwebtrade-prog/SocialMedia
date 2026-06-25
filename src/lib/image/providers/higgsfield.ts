@@ -93,3 +93,33 @@ async function downloadImage(url: string): Promise<Buffer> {
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
+
+export interface SoulStyle { id: string; name: string; previewUrl: string | null }
+
+export function normalizeSoulStyles(raw: unknown): SoulStyle[] {
+  const arr = Array.isArray(raw)
+    ? raw
+    : Array.isArray((raw as { items?: unknown })?.items)
+      ? (raw as { items: unknown[] }).items
+      : [];
+  return (arr as Record<string, unknown>[])
+    .filter((s) => s && typeof s.id === "string" && typeof s.name === "string")
+    .map((s) => ({ id: s.id as string, name: s.name as string, previewUrl: typeof s.preview_url === "string" ? (s.preview_url as string) : null }));
+}
+
+let stylesCache: SoulStyle[] | null = null;
+
+export async function listSoulStyles(): Promise<SoulStyle[]> {
+  if (stylesCache) return stylesCache;
+  const key = process.env.HIGGSFIELD_API_KEY, secret = process.env.HIGGSFIELD_API_SECRET;
+  if (!key || !secret) return [];
+  try {
+    const res = await fetch("https://platform.higgsfield.ai/v1/text2image/soul-styles", { headers: { "hf-api-key": key, "hf-secret": secret } });
+    if (!res.ok) return [];
+    const styles = normalizeSoulStyles(await res.json());
+    if (styles.length) stylesCache = styles;
+    return styles;
+  } catch {
+    return [];
+  }
+}
