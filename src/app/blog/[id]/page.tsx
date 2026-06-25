@@ -34,6 +34,7 @@ export default function BlogDetailPage({ params }: { params: Promise<{ id: strin
   const [useMockup, setUseMockup] = useState(false);
   const [imgBusy, setImgBusy] = useState(false);
   const [imgMsg, setImgMsg] = useState<string | null>(null);
+  const [provider, setProvider] = useState("GPT");
   useEffect(() => { fetch("/api/blog/shopify-blogs").then((r) => r.json()).then((d) => setBlogs(Array.isArray(d) ? d : [])).catch(() => setBlogs([])); }, []);
   useEffect(() => { fetch("/api/products").then((r) => r.json()).then((d) => setProducts(Array.isArray(d) ? d : [])).catch(() => setProducts([])); }, []);
 
@@ -71,10 +72,26 @@ export default function BlogDetailPage({ params }: { params: Promise<{ id: strin
     try {
       const res = await fetch(`/api/blog/contents/${id}/image`, {
         method: "POST", headers: { "content-type": "application/json" },
-        body: JSON.stringify({ productId: refProductId || undefined, useMockup: useMockup && !!refProductId }),
+        body: JSON.stringify({ productId: refProductId || undefined, useMockup: useMockup && !!refProductId, provider }),
       });
       const json = await res.json();
       setImgMsg(res.ok && json.status === "DONE" ? "Immagine generata." : `Errore: ${json.error ?? "sconosciuto"}`);
+      await load();
+    } catch { setImgMsg("Errore di rete."); } finally { setImgBusy(false); }
+  };
+
+  const uploadImage = async (file: File) => {
+    setImgBusy(true); setImgMsg(null);
+    try {
+      const dataUrl: string = await new Promise((resolve, reject) => {
+        const r = new FileReader(); r.onload = () => resolve(String(r.result)); r.onerror = reject; r.readAsDataURL(file);
+      });
+      const res = await fetch(`/api/blog/contents/${id}/image/upload`, {
+        method: "POST", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ dataUrl }),
+      });
+      const json = await res.json();
+      setImgMsg(res.ok && json.status === "DONE" ? "Immagine caricata." : `Errore: ${json.error ?? "sconosciuto"}`);
       await load();
     } catch { setImgMsg("Errore di rete."); } finally { setImgBusy(false); }
   };
@@ -121,6 +138,12 @@ export default function BlogDetailPage({ params }: { params: Promise<{ id: strin
           <img src={`/api/assets/${c.assets[0].id}`} alt="" className="mb-3 w-full max-w-md rounded border" />
         )}
         <div className="flex flex-wrap items-center gap-3">
+          <select value={provider} onChange={(e) => setProvider(e.target.value)} className="rounded border p-1">
+            <option value="GPT">GPT (OpenAI)</option>
+            <option value="GEMINI">Gemini (nano banana)</option>
+            <option value="HIGGSFIELD">Higgsfield</option>
+            <option value="MANUAL">Caricamento manuale</option>
+          </select>
           <select value={refProductId} onChange={(e) => setRefProductId(e.target.value)} className="rounded border p-1">
             <option value="">Nessun prodotto</option>
             {products.filter((pr) => pr.imagePath).map((pr) => <option key={pr.id} value={pr.id}>{pr.nome}</option>)}
@@ -133,7 +156,11 @@ export default function BlogDetailPage({ params }: { params: Promise<{ id: strin
             // eslint-disable-next-line @next/next/no-img-element
             <img src={`/api/products/${refProductId}/image`} alt="" className="h-14 w-14 rounded border object-contain" />
           )}
-          <button onClick={genImage} disabled={imgBusy} className="rounded bg-emerald-600 px-3 py-1 text-white disabled:opacity-40">{imgBusy ? "Genero…" : (c.assets?.[0] ? "Rigenera immagine" : "Genera immagine")}</button>
+          {provider === "MANUAL" ? (
+            <input type="file" accept="image/*" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadImage(f); }} className="text-sm" />
+          ) : (
+            <button onClick={genImage} disabled={imgBusy} className="rounded bg-emerald-600 px-3 py-1 text-white disabled:opacity-40">{imgBusy ? "Genero…" : (c.assets?.[0] ? "Rigenera immagine" : "Genera immagine")}</button>
+          )}
         </div>
         <GenerationProgress running={imgBusy} estimatedMs={90000} label="Generazione immagine" />
         {imgMsg && <p className="mt-2">{imgMsg}</p>}

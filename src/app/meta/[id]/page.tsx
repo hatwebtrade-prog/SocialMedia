@@ -25,6 +25,7 @@ export default function MetaContentDetail() {
   const [products, setProducts] = useState<{ id: string; nome: string; imagePath: string | null }[]>([]);
   const [refProductId, setRefProductId] = useState("");
   const [useMockup, setUseMockup] = useState(false);
+  const [provider, setProvider] = useState("GPT");
   useEffect(() => { fetch("/api/products").then((r) => r.json()).then((d) => setProducts(Array.isArray(d) ? d : [])).catch(() => setProducts([])); }, []);
 
   const load = useCallback(async () => {
@@ -42,11 +43,25 @@ export default function MetaContentDetail() {
     setBusyImg(`${slideIndex}`); setMsg(null);
     const res = await fetch(`/api/meta/contents/${id}/image`, {
       method: "POST", headers: { "content-type": "application/json" },
-      body: JSON.stringify({ slideIndex, productId: refProductId || undefined, useMockup: useMockup && !!refProductId }),
+      body: JSON.stringify({ slideIndex, productId: refProductId || undefined, useMockup: useMockup && !!refProductId, provider }),
     });
     const json = await res.json();
     setBusyImg(null);
     if (res.ok) await load(); else setMsg(`Errore immagine: ${json.error ?? "sconosciuto"}`);
+  };
+
+  const uploadImage = async (slideIndex: number | null, file: File) => {
+    setBusyImg(`${slideIndex}`); setMsg(null);
+    const dataUrl: string = await new Promise((resolve, reject) => {
+      const r = new FileReader(); r.onload = () => resolve(String(r.result)); r.onerror = reject; r.readAsDataURL(file);
+    });
+    const res = await fetch(`/api/meta/contents/${id}/image/upload`, {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ slideIndex, dataUrl }),
+    });
+    const json = await res.json();
+    setBusyImg(null);
+    if (res.ok) await load(); else setMsg(`Errore upload: ${json.error ?? "sconosciuto"}`);
   };
 
   if (!c) return <p>Caricamento…</p>;
@@ -72,6 +87,12 @@ export default function MetaContentDetail() {
       <div className="mb-4 rounded border bg-neutral-50 p-3 text-sm">
         <div className="mb-2 font-medium">Immagine prodotto (mockup) per la generazione</div>
         <div className="flex flex-wrap items-center gap-3">
+          <select value={provider} onChange={(e) => setProvider(e.target.value)} className="rounded border p-1">
+            <option value="GPT">GPT (OpenAI)</option>
+            <option value="GEMINI">Gemini (nano banana)</option>
+            <option value="HIGGSFIELD">Higgsfield</option>
+            <option value="MANUAL">Caricamento manuale</option>
+          </select>
           <select value={refProductId} onChange={(e) => setRefProductId(e.target.value)} className="rounded border p-1">
             <option value="">Nessun prodotto</option>
             {products.filter((p) => p.imagePath).map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
@@ -94,7 +115,11 @@ export default function MetaContentDetail() {
           // eslint-disable-next-line @next/next/no-img-element
           <img src={`/api/assets/${assetFor(null)!.id}`} alt="" className="mb-2 w-64 rounded border" />
         ) : <p className="text-sm text-neutral-500">Nessuna immagine.</p>}
-        <button onClick={() => genImage(null)} disabled={busyImg === "null"} className="rounded bg-emerald-600 px-3 py-1 text-sm text-white disabled:opacity-40">{busyImg === "null" ? "Genero…" : "Genera immagine"}</button>
+        {provider === "MANUAL" ? (
+          <input type="file" accept="image/*" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadImage(null, f); }} className="text-sm" />
+        ) : (
+          <button onClick={() => genImage(null)} disabled={busyImg === "null"} className="rounded bg-emerald-600 px-3 py-1 text-sm text-white disabled:opacity-40">{busyImg === "null" ? "Genero…" : "Genera immagine"}</button>
+        )}
       </div>
 
       {c.formato === "CAROSELLO" && (p.slides ?? []).map((s, idx) => (
@@ -105,7 +130,11 @@ export default function MetaContentDetail() {
             // eslint-disable-next-line @next/next/no-img-element
             <img src={`/api/assets/${assetFor(idx)!.id}`} alt="" className="mb-2 w-48 rounded border" />
           ) : null}
-          <button onClick={() => genImage(idx)} disabled={busyImg === `${idx}`} className="rounded bg-emerald-600 px-3 py-1 text-sm text-white disabled:opacity-40">{busyImg === `${idx}` ? "Genero…" : "Genera immagine slide"}</button>
+          {provider === "MANUAL" ? (
+            <input type="file" accept="image/*" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadImage(idx, f); }} className="text-sm" />
+          ) : (
+            <button onClick={() => genImage(idx)} disabled={busyImg === `${idx}`} className="rounded bg-emerald-600 px-3 py-1 text-sm text-white disabled:opacity-40">{busyImg === `${idx}` ? "Genero…" : "Genera immagine slide"}</button>
+          )}
         </div>
       ))}
 
