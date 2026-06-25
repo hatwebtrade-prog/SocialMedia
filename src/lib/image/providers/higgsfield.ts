@@ -1,4 +1,6 @@
-const MODEL = process.env.HIGGSFIELD_IMAGE_MODEL ?? "higgsfield-ai/soul/standard";
+const BASE = "https://platform.higgsfield.ai";
+const TEXT_MODEL = process.env.HIGGSFIELD_IMAGE_MODEL ?? "higgsfield-ai/soul/standard";
+const REF_MODEL = process.env.HIGGSFIELD_REF_MODEL ?? "higgsfield-ai/soul/reference";
 const POLL_INTERVAL_MS = 3000;
 const POLL_TIMEOUT_MS = 180000;
 
@@ -8,24 +10,36 @@ interface HiggsfieldJob {
   images?: { url?: string }[];
 }
 
-/** Higgsfield image generation (async): enqueue → poll status_url until completed → download the image.
- *  Auth: `Authorization: Key {key}:{secret}`. Mockup/image-to-image not yet supported. */
-export async function higgsfieldImage(prompt: string, _mockup?: Buffer): Promise<Buffer> {
+/** Higgsfield image generation (async). Without a mockup → soul/standard (text-to-image).
+ *  With a mockup → upload it (presigned S3) and use soul/reference image-to-image guided by the product.
+ *  Auth: `Authorization: Key {key}:{secret}` (upload uses `hf-api-key`/`hf-secret`). */
+export async function higgsfieldImage(prompt: string, mockup?: Buffer): Promise<Buffer> {
   const key = process.env.HIGGSFIELD_API_KEY;
   const secret = process.env.HIGGSFIELD_API_SECRET;
   if (!key || !secret) throw new Error("HIGGSFIELD_API_KEY/HIGGSFIELD_API_SECRET mancante");
   const auth = `Key ${key}:${secret}`;
 
+  let model = TEXT_MODEL;
+  const body: Record<string, unknown> = {
+    prompt,
+    aspect_ratio: "1:1",
+    resolution: process.env.HIGGSFIELD_RESOLUTION ?? "1080p",
+  };
+  if (mockup) {
+    const publicUrl = await uploadToHiggsfield(mockup, key, secret);
+    model = REF_MODEL;
+    body.input_images = [{ type: "image_url", image_url: publicUrl }];
+  }
+
   // 1. Enqueue the generation request.
-  const res = await fetch(`https://platform.higgsfield.ai/${MODEL}`, {
+  const res = await fetch(`${BASE}/${model}`, {
     method: "POST",
     headers: { Authorization: auth, "content-type": "application/json" },
-    body: JSON.stringify({ prompt, aspect_ratio: "1:1", resolution: process.env.HIGGSFIELD_RESOLUTION ?? "1080p" }),
+    body: JSON.stringify(body),
   });
   if (!res.ok) throw new Error(`Higgsfield HTTP ${res.status}: ${(await res.text().catch(() => "")).slice(0, 300)}`);
   let job: HiggsfieldJob = await res.json().catch(() => ({}));
 
-  // Some responses may already carry the image (defensive).
   const immediate = job.images?.[0]?.url;
   if (job.status === "completed" && immediate) return downloadImage(immediate);
 
@@ -49,6 +63,25 @@ export async function higgsfieldImage(prompt: string, _mockup?: Buffer): Promise
     job = await st.json().catch(() => ({}));
   }
   throw new Error("Higgsfield: timeout — immagine non pronta entro il limite");
+}
+
+/** Uploads bytes to Higgsfield via a presigned S3 URL; returns the hosted public URL. */
+async function uploadToHiggsfield(bytes: Buffer, key: string, secret: string): Promise<string> {
+  const gen = await fetch(`${BASE}/files/generate-upload-url`, {
+    method: "POST",
+    headers: { "hf-api-key": key, "hf-secret": secret, "content-type": "application/json" },
+    body: JSON.stringify({ content_type: "image/png" }),
+  });
+  if (!gen.ok) throw new Error(`Higgsfield upload-url HTTP ${gen.status}`);
+  const data: { upload_url?: string; public_url?: string } = await gen.json().catch(() => ({}));
+  if (!data.upload_url || !data.public_url) throw new Error("Higgsfield: risposta upload-url incompleta");
+  const put = await fetch(data.upload_url, {
+    method: "PUT",
+    headers: { "content-type": "image/png" },
+    body: new Uint8Array(bytes),
+  });
+  if (!put.ok) throw new Error(`Higgsfield upload PUT HTTP ${put.status}`);
+  return data.public_url;
 }
 
 async function downloadImage(url: string): Promise<Buffer> {
