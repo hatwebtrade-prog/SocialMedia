@@ -1,24 +1,33 @@
 export interface ImagePromptArgs {
   ideaCreativa: string;
-  slideText: string | null;
+  slideText?: string | null;
   hasMockup?: boolean;
 }
 
-/** Builds a strongly photorealistic prompt for the image models. The creative idea drives the
- *  scene; the rest forces real, photographic results (camera, lighting, skin/hand realism) and,
- *  when a product mockup is provided, faithful preservation of the real packaging. */
+/** Turns a slide's editorial copy into a short, non-rendered theme phrase (strips "Slide N:" etc.). */
+function temaSlide(slideText?: string | null): string {
+  if (!slideText) return "";
+  const cleaned = slideText
+    .replace(/slide\s*\d+\s*[:.\-–]?\s*/gi, "")
+    .replace(/\s+/g, " ")
+    .trim();
+  return cleaned.split(" ").slice(0, 14).join(" ");
+}
+
+/** Builds a concise, strongly photorealistic prompt for a SINGLE photo. The creative idea is the
+ *  scene; the slide copy is passed only as an unrendered theme. Forbids text/collage/slide layouts
+ *  (which low-instruction models like Higgsfield Soul otherwise produce) and keeps the real product. */
 export function buildImagePrompt({ ideaCreativa, slideText, hasMockup }: ImagePromptArgs): string {
-  const base = slideText ? `${ideaCreativa}. ${slideText}` : ideaCreativa;
+  const tema = temaSlide(slideText);
+  const scene = tema ? `${ideaCreativa}. Tema da illustrare con la scena: ${tema}.` : `${ideaCreativa}.`;
   const product = hasMockup
-    ? "Mantieni il prodotto IDENTICO al packaging di riferimento fornito (stessa etichetta, forma, colori e testo, senza inventarne o alterarne i dettagli) e inseriscilo in modo naturale e credibile nella scena — ad esempio tenuto in mano o appoggiato — con prospettiva, scala, luce e ombre coerenti."
+    ? "Includi il prodotto reale mantenendolo IDENTICO al packaging di riferimento (stessa etichetta, forma, colori e testo, senza alterarlo) e inseriscilo in modo naturale e credibile nella scena, ad esempio tenuto in mano, con luce, scala e ombre coerenti."
     : "";
   return [
-    `${base}.`,
-    "Fotografia iperrealistica di altissima qualità, indistinguibile da uno scatto reale: fotocamera full-frame, obiettivo 50mm f/1.8, profondità di campo naturale, messa a fuoco nitida sul soggetto, grana fotografica sottile.",
-    "Illuminazione naturale morbida e professionale, bilanciamento del bianco corretto, colori fedeli; pelle realistica con texture e micro-dettagli (pori, peluria, capelli) e mani anatomicamente corrette.",
-    "Stile editoriale autentico per il brand Agocap (integratori e benessere naturale): scena curata, pulita e credibile, adatta a un post social.",
+    scene,
+    "Una SINGOLA fotografia iperrealistica, indistinguibile da uno scatto reale: fotocamera full-frame, obiettivo 50mm, luce naturale morbida, messa a fuoco nitida, pelle e mani realistiche con dettagli naturali.",
     product,
-    "Realismo fotografico assoluto: niente aspetto da render 3D, illustrazione, cartoon, CGI o plastica; niente deformazioni di mani o volti. Nessun testo, logo o watermark sovrimpresso.",
+    "VIETATO nell'immagine: qualsiasi testo, lettera, scritta, didascalia, logo o watermark; collage, griglie, riquadri multipli o slide affiancate; aspetto 3D, render, cartoon, CGI o plastica.",
   ]
     .filter(Boolean)
     .join(" ");
