@@ -7,7 +7,7 @@ interface HiggsfieldJob {
   images?: { url?: string }[];
 }
 
-export async function higgsfieldImage(prompt: string, mockup?: Buffer, opts?: { styleId?: string; soulSize?: string }): Promise<Buffer> {
+export async function higgsfieldImage(prompt: string, mockup?: Buffer, opts?: { styleId?: string; soulSize?: string; customReferenceId?: string }): Promise<Buffer> {
   const key = process.env.HIGGSFIELD_API_KEY;
   const secret = process.env.HIGGSFIELD_API_SECRET;
   if (!key || !secret) throw new Error("HIGGSFIELD_API_KEY/HIGGSFIELD_API_SECRET mancante");
@@ -19,7 +19,10 @@ export async function higgsfieldImage(prompt: string, mockup?: Buffer, opts?: { 
     style_id: opts?.styleId ?? DEFAULT_STYLE,
     quality: "1080p",
   };
-  if (mockup) {
+  if (opts?.customReferenceId) {
+    params.custom_reference_id = opts.customReferenceId;
+    params.custom_reference_strength = 1;
+  } else if (mockup) {
     const publicUrl = await uploadToHiggsfield(mockup, key, secret);
     params.input_images = [{ type: "image_url", image_url: publicUrl }];
   }
@@ -53,6 +56,38 @@ export async function higgsfieldImage(prompt: string, mockup?: Buffer, opts?: { 
     job = await st.json().catch(() => ({}));
   }
   throw new Error("Higgsfield: timeout — immagine non pronta entro il limite");
+}
+
+/** Uploads bytes to Higgsfield and returns the hosted public URL (exported for reuse). */
+export async function uploadHiggsfieldImage(bytes: Buffer, key: string, secret: string): Promise<string> {
+  return uploadToHiggsfield(bytes, key, secret);
+}
+
+/**
+ * Creates a Higgsfield SoulId (custom reference) from a hosted image URL; polls until completed.
+ * Returns id or null.
+ */
+export async function createSoulId(name: string, imageUrl: string, key: string, secret: string): Promise<string | null> {
+  try {
+    const res = await fetch("https://platform.higgsfield.ai/v1/custom-references", {
+      method: "POST",
+      headers: { "hf-api-key": key, "hf-secret": secret, "content-type": "application/json" },
+      body: JSON.stringify({ name, input_images: [{ type: "image_url", image_url: imageUrl }] }),
+    });
+    if (!res.ok) return null;
+    let data: { id?: string; status?: string } = await res.json().catch(() => ({}));
+    const id = data.id;
+    if (!id) return null;
+    const deadline = Date.now() + 120000;
+    while (Date.now() < deadline && data.status !== "completed") {
+      if (data.status === "failed") return null;
+      await sleep(3000);
+      const st = await fetch(`https://platform.higgsfield.ai/v1/custom-references/${id}`, { headers: { "hf-api-key": key, "hf-secret": secret } });
+      if (!st.ok) break;
+      data = await st.json().catch(() => ({}));
+    }
+    return data.status === "completed" ? id : null;
+  } catch { return null; }
 }
 
 /** Uploads bytes to Higgsfield via a presigned S3 URL; returns the hosted public URL. */

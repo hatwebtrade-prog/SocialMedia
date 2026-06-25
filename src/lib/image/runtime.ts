@@ -4,6 +4,7 @@ import { readFileSync } from "node:fs";
 import { prisma } from "@/lib/prisma";
 import { IMAGE_MODEL } from "./openai";
 import { generateWithProvider } from "./providers";
+import { createSoulId, uploadHiggsfieldImage } from "./providers/higgsfield";
 import { saveAssetFile, deleteAssetFile } from "./store";
 import type { ImageDeps } from "./generate";
 
@@ -12,7 +13,7 @@ interface MetaPayloadShape {
   slides?: Array<{ testo?: string }>;
 }
 
-function sharedImageDeps(): Pick<ImageDeps, "loadMockup" | "callOpenAI" | "persistAsset"> {
+function sharedImageDeps(): Pick<ImageDeps, "loadMockup" | "callOpenAI" | "persistAsset" | "ensureHiggsfieldRef"> {
   return {
     loadMockup: async (productId) => {
       const product = await prisma.product.findUnique({ where: { id: productId }, select: { imagePath: true } });
@@ -28,6 +29,24 @@ function sharedImageDeps(): Pick<ImageDeps, "loadMockup" | "callOpenAI" | "persi
 
     callOpenAI: async (prompt, mockup, provider, opts) => {
       return generateWithProvider(provider ?? "GPT", prompt, mockup, opts);
+    },
+
+    ensureHiggsfieldRef: async (productId) => {
+      const key = process.env.HIGGSFIELD_API_KEY, secret = process.env.HIGGSFIELD_API_SECRET;
+      if (!key || !secret) return null;
+      const product = await prisma.product.findUnique({ where: { id: productId }, select: { nome: true, imagePath: true, higgsfieldSoulId: true } });
+      if (!product) return null;
+      if (product.higgsfieldSoulId) return product.higgsfieldSoulId;
+      if (!product.imagePath) return null;
+      try {
+        const { readFileSync } = await import("node:fs");
+        const pathMod = await import("node:path");
+        const buf = readFileSync(pathMod.join(process.cwd(), product.imagePath));
+        const publicUrl = await uploadHiggsfieldImage(buf, key, secret);
+        const soulId = await createSoulId(product.nome, publicUrl, key, secret);
+        if (soulId) await prisma.product.update({ where: { id: productId }, data: { higgsfieldSoulId: soulId } });
+        return soulId;
+      } catch { return null; }
     },
 
     persistAsset: async ({ input, prompt, bytes }) => {

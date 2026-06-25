@@ -12,8 +12,9 @@ export interface ImageGenInput {
 export interface ImageDeps {
   loadContent: (contentId: string, slideIndex: number | null) => Promise<{ ideaCreativa: string; slideText: string | null }>;
   loadMockup: (productId: string) => Promise<Buffer | null>;
-  callOpenAI: (prompt: string, mockup?: Buffer, provider?: ImageProvider, opts?: { styleId?: string; soulSize?: string }) => Promise<Buffer>;
+  callOpenAI: (prompt: string, mockup?: Buffer, provider?: ImageProvider, opts?: { styleId?: string; soulSize?: string; customReferenceId?: string }) => Promise<Buffer>;
   persistAsset: (args: { input: ImageGenInput; prompt: string; bytes: Buffer }) => Promise<{ assetId: string }>;
+  ensureHiggsfieldRef?: (productId: string) => Promise<string | null>;
 }
 
 export interface ImageGenResult {
@@ -30,7 +31,11 @@ export async function generateImageAsset(
     const { ideaCreativa, slideText } = await deps.loadContent(input.contentId, input.slideIndex);
     const mockup = input.useMockup && input.productId ? await deps.loadMockup(input.productId) : null;
     const prompt = buildImagePrompt({ ideaCreativa, slideText, hasMockup: !!mockup });
-    const bytes = await deps.callOpenAI(prompt, mockup ?? undefined, input.provider);
+    let customReferenceId: string | undefined;
+    if (input.provider === "HIGGSFIELD" && input.useMockup && input.productId && deps.ensureHiggsfieldRef) {
+      customReferenceId = (await deps.ensureHiggsfieldRef(input.productId)) ?? undefined;
+    }
+    const bytes = await deps.callOpenAI(prompt, mockup ?? undefined, input.provider, { customReferenceId });
     const { assetId } = await deps.persistAsset({ input, prompt, bytes });
     return { status: "DONE", assetId };
   } catch (err) {

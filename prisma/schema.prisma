@@ -109,9 +109,10 @@ model Product {
   ingredienti String?
   target      String?
   url         String?
-  handle      String?         @unique
-  imagePath   String?
-  attivo      Boolean         @default(true)
+  handle             String?         @unique
+  imagePath          String?
+  higgsfieldSoulId   String?
+  attivo             Boolean         @default(true)
   createdAt   DateTime        @default(now())
   ideas       Idea[]
   knowledge   KnowledgeItem[]

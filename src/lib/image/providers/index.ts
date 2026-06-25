@@ -5,7 +5,7 @@ import { higgsfieldImage } from "./higgsfield";
 export const IMAGE_PROVIDERS = ["GPT", "GEMINI", "HIGGSFIELD"] as const;
 export type ImageProvider = (typeof IMAGE_PROVIDERS)[number];
 
-export interface ProviderOpts { styleId?: string; soulSize?: string }
+export interface ProviderOpts { styleId?: string; soulSize?: string; customReferenceId?: string }
 
 export function isImageProvider(v: string): v is ImageProvider {
   return (IMAGE_PROVIDERS as readonly string[]).includes(v);
