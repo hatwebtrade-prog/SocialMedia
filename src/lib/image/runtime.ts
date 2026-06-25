@@ -1,9 +1,9 @@
 import sharp from "sharp";
 import path from "node:path";
 import { readFileSync } from "node:fs";
-import { toFile } from "openai";
 import { prisma } from "@/lib/prisma";
-import { getOpenAI, IMAGE_MODEL } from "./openai";
+import { IMAGE_MODEL } from "./openai";
+import { generateWithProvider } from "./providers";
 import { saveAssetFile, deleteAssetFile } from "./store";
 import type { ImageDeps } from "./generate";
 
@@ -26,19 +26,8 @@ function sharedImageDeps(): Pick<ImageDeps, "loadMockup" | "callOpenAI" | "persi
       }
     },
 
-    callOpenAI: async (prompt, mockup) => {
-      const client = getOpenAI();
-      if (mockup) {
-        const file = await toFile(mockup, "mockup.png", { type: "image/png" });
-        const res = await client.images.edit({ model: IMAGE_MODEL, image: file, prompt, size: "1024x1024" });
-        const b64 = res.data?.[0]?.b64_json;
-        if (!b64) throw new Error("OpenAI non ha restituito un'immagine (edit)");
-        return Buffer.from(b64, "base64");
-      }
-      const res = await client.images.generate({ model: IMAGE_MODEL, prompt, size: "1024x1024" });
-      const b64 = res.data?.[0]?.b64_json;
-      if (!b64) throw new Error("OpenAI non ha restituito un'immagine");
-      return Buffer.from(b64, "base64");
+    callOpenAI: async (prompt, mockup, provider) => {
+      return generateWithProvider(provider ?? "GPT", prompt, mockup);
     },
 
     persistAsset: async ({ input, prompt, bytes }) => {

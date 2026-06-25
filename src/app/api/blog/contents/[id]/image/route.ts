@@ -16,6 +16,6 @@ export async function POST(request: Request, { params }: Ctx) {
   const run = injected.__run ?? generateImageAsset;
   const deps = injected.__run ? ({} as never) : buildBlogImageDeps();
 
-  const result = await run({ contentId: id, slideIndex: null, productId: parsed.data.productId, useMockup: parsed.data.useMockup }, deps);
+  const result = await run({ contentId: id, slideIndex: null, productId: parsed.data.productId, useMockup: parsed.data.useMockup, provider: parsed.data.provider }, deps);
   return NextResponse.json(result, { status: result.status === "ERROR" ? 502 : 200 });
 }

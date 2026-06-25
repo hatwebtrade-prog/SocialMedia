@@ -41,4 +41,10 @@ describe("generateImageAsset", () => {
     expect(deps.loadMockup).not.toHaveBeenCalled();
     expect((deps.callOpenAI as any).mock.calls[0][1]).toBeUndefined();
   });
+
+  it("passes the chosen provider to callOpenAI", async () => {
+    const deps = makeDeps();
+    await generateImageAsset({ contentId: "c1", slideIndex: null, provider: "GEMINI" }, deps as any);
+    expect((deps.callOpenAI as any).mock.calls[0][2]).toBe("GEMINI");
+  });
 });

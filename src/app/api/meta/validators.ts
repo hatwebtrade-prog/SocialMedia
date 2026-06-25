@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { CONTENT_FORMATS, CONTENT_STATUSES, META_PLATFORMS } from "@/lib/meta/enums";
+import { IMAGE_PROVIDERS } from "@/lib/image/providers";
 
 export const generateInputSchema = z.object({
   ideaId: z.string().min(1),
@@ -19,4 +20,5 @@ export const imageInputSchema = z.object({
   slideIndex: z.number().int().min(0).nullable().optional(),
   productId: z.string().optional(),
   useMockup: z.boolean().optional(),
+  provider: z.enum(IMAGE_PROVIDERS).optional(),
 });
