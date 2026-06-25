@@ -22,6 +22,10 @@ export default function MetaContentDetail() {
   const [c, setC] = useState<Content | null>(null);
   const [busyImg, setBusyImg] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
+  const [products, setProducts] = useState<{ id: string; nome: string; imagePath: string | null }[]>([]);
+  const [refProductId, setRefProductId] = useState("");
+  const [useMockup, setUseMockup] = useState(false);
+  useEffect(() => { fetch("/api/products").then((r) => r.json()).then((d) => setProducts(Array.isArray(d) ? d : [])).catch(() => setProducts([])); }, []);
 
   const load = useCallback(async () => {
     const res = await fetch(`/api/meta/contents/${id}`);
@@ -36,7 +40,10 @@ export default function MetaContentDetail() {
 
   const genImage = async (slideIndex: number | null) => {
     setBusyImg(`${slideIndex}`); setMsg(null);
-    const res = await fetch(`/api/meta/contents/${id}/image`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ slideIndex }) });
+    const res = await fetch(`/api/meta/contents/${id}/image`, {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ slideIndex, productId: refProductId || undefined, useMockup: useMockup && !!refProductId }),
+    });
     const json = await res.json();
     setBusyImg(null);
     if (res.ok) await load(); else setMsg(`Errore immagine: ${json.error ?? "sconosciuto"}`);
@@ -61,6 +68,25 @@ export default function MetaContentDetail() {
       <input className="mb-3 w-full rounded border p-2" defaultValue={p.cta ?? ""} onBlur={(e) => patch({ payload: { ...p, cta: e.target.value } })} />
 
       <p className="mb-3 text-sm text-neutral-600">Hashtag: {(p.hashtags ?? []).join(" ")}</p>
+
+      <div className="mb-4 rounded border bg-neutral-50 p-3 text-sm">
+        <div className="mb-2 font-medium">Immagine prodotto (mockup) per la generazione</div>
+        <div className="flex flex-wrap items-center gap-3">
+          <select value={refProductId} onChange={(e) => setRefProductId(e.target.value)} className="rounded border p-1">
+            <option value="">Nessun prodotto</option>
+            {products.filter((p) => p.imagePath).map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
+          </select>
+          <label className="flex items-center gap-1">
+            <input type="checkbox" checked={useMockup} onChange={(e) => setUseMockup(e.target.checked)} disabled={!refProductId} />
+            Inserisci il mockup nel contesto (image-edit)
+          </label>
+          {refProductId && useMockup && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={`/api/products/${refProductId}/image`} alt="" className="h-14 w-14 rounded border object-contain" />
+          )}
+        </div>
+        <p className="mt-1 text-xs text-neutral-500">Se attivo, l'immagine generata (post o slide) sarà guidata dal mockup reale del prodotto.</p>
+      </div>
 
       <div className="mb-4">
         <h2 className="mb-2 font-medium">Immagine principale</h2>
