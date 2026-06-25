@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { CONTENT_STATUSES } from "@/lib/meta/enums";
+import { ImageBriefForm, type Brief } from "@/components/image-brief";
 
 interface Asset { id: string; slideIndex: number | null; }
 interface Content {
@@ -26,6 +27,7 @@ export default function MetaContentDetail() {
   const [refProductId, setRefProductId] = useState("");
   const [useMockup, setUseMockup] = useState(false);
   const [provider, setProvider] = useState("GPT");
+  const [brief, setBrief] = useState<Brief>({});
   useEffect(() => { fetch("/api/products").then((r) => r.json()).then((d) => setProducts(Array.isArray(d) ? d : [])).catch(() => setProducts([])); }, []);
 
   const load = useCallback(async () => {
@@ -43,7 +45,7 @@ export default function MetaContentDetail() {
     setBusyImg(`${slideIndex}`); setMsg(null);
     const res = await fetch(`/api/meta/contents/${id}/image`, {
       method: "POST", headers: { "content-type": "application/json" },
-      body: JSON.stringify({ slideIndex, productId: refProductId || undefined, useMockup: useMockup && !!refProductId, provider }),
+      body: JSON.stringify({ slideIndex, productId: refProductId || undefined, useMockup: useMockup && !!refProductId, provider, brief, styleId: brief.stile }),
     });
     const json = await res.json();
     setBusyImg(null);
@@ -107,6 +109,7 @@ export default function MetaContentDetail() {
           )}
         </div>
         <p className="mt-1 text-xs text-neutral-500">Se attivo, l'immagine generata (post o slide) sarà guidata dal mockup reale del prodotto.</p>
+        <ImageBriefForm provider={provider} value={brief} onChange={setBrief} />
       </div>
 
       <div className="mb-4">

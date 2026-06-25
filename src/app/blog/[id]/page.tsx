@@ -3,6 +3,7 @@
 import { useEffect, useState, use } from "react";
 import { StatusBadge } from "@/components/status-badge";
 import { GenerationProgress } from "@/components/generation-progress";
+import { ImageBriefForm, type Brief } from "@/components/image-brief";
 
 interface Asset { id: string; }
 interface Content {
@@ -35,6 +36,7 @@ export default function BlogDetailPage({ params }: { params: Promise<{ id: strin
   const [imgBusy, setImgBusy] = useState(false);
   const [imgMsg, setImgMsg] = useState<string | null>(null);
   const [provider, setProvider] = useState("GPT");
+  const [brief, setBrief] = useState<Brief>({});
   useEffect(() => { fetch("/api/blog/shopify-blogs").then((r) => r.json()).then((d) => setBlogs(Array.isArray(d) ? d : [])).catch(() => setBlogs([])); }, []);
   useEffect(() => { fetch("/api/products").then((r) => r.json()).then((d) => setProducts(Array.isArray(d) ? d : [])).catch(() => setProducts([])); }, []);
 
@@ -72,7 +74,7 @@ export default function BlogDetailPage({ params }: { params: Promise<{ id: strin
     try {
       const res = await fetch(`/api/blog/contents/${id}/image`, {
         method: "POST", headers: { "content-type": "application/json" },
-        body: JSON.stringify({ productId: refProductId || undefined, useMockup: useMockup && !!refProductId, provider }),
+        body: JSON.stringify({ productId: refProductId || undefined, useMockup: useMockup && !!refProductId, provider, brief, styleId: brief.stile }),
       });
       const json = await res.json();
       setImgMsg(res.ok && json.status === "DONE" ? "Immagine generata." : `Errore: ${json.error ?? "sconosciuto"}`);
@@ -162,6 +164,7 @@ export default function BlogDetailPage({ params }: { params: Promise<{ id: strin
             <button onClick={genImage} disabled={imgBusy} className="rounded bg-emerald-600 px-3 py-1 text-white disabled:opacity-40">{imgBusy ? "Genero…" : (c.assets?.[0] ? "Rigenera immagine" : "Genera immagine")}</button>
           )}
         </div>
+        <ImageBriefForm provider={provider} value={brief} onChange={setBrief} />
         <GenerationProgress running={imgBusy} estimatedMs={90000} label="Generazione immagine" />
         {imgMsg && <p className="mt-2">{imgMsg}</p>}
       </div>
