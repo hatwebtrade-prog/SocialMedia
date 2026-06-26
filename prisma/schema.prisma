@@ -46,6 +46,31 @@ enum KnowledgeType {
   CLAIM
   LINEA_GUIDA
   DOCUMENTO
+  IDEA_PERSONALE
+  PIANO_EDITORIALE
+}
+
+model KnowledgeFile {
+  id        String            @id @default(cuid())
+  nome      String
+  path      String
+  mimeType  String
+  kind      KnowledgeFileKind
+  testo     String?
+  stato     FileStatus        @default(IN_CORSO)
+  errore    String?
+  createdAt DateTime          @default(now())
+}
+
+enum KnowledgeFileKind {
+  DOCUMENTO
+  IMMAGINE
+}
+
+enum FileStatus {
+  IN_CORSO
+  PRONTO
+  ERRORE
 }
 
 enum RunStatus {
