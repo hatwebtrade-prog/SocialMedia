@@ -276,3 +276,14 @@ model GeneratedAsset {
 
   @@index([contentId])
 }
+
+model BrandVisualProfile {
+  id                  String   @id @default("default")
+  palette             String[] @default([])
+  stileFotografico    String?
+  mood                String?
+  elementiRicorrenti  String?
+  daEvitare           String?
+  referenceImagePaths String[] @default([])
+  updatedAt           DateTime @updatedAt
+}
