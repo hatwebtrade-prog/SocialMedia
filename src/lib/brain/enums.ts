@@ -1,5 +1,6 @@
 export const KNOWLEDGE_TYPES = [
   "INFO_PRODOTTO", "BRAND_VOICE", "TARGET", "CLAIM", "LINEA_GUIDA", "DOCUMENTO",
+  "IDEA_PERSONALE", "PIANO_EDITORIALE",
 ] as const;
 
 export type KnowledgeTypeValue = (typeof KNOWLEDGE_TYPES)[number];
