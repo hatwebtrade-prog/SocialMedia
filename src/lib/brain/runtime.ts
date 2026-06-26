@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { getClaude, BRAINSTORM_MODEL } from "@/lib/claude";
 import { buildKbContext } from "./context";
+import { loadKnowledgeKbItems } from "@/lib/knowledge/items";
 import { buildBrainstormPrompt, type BrainstormInput } from "./prompt";
 import { brainstormOutputSchema } from "./schema";
 import type { BrainstormDeps, ClaudeResult, PersistArgs } from "./generate";
@@ -23,7 +24,7 @@ export function buildRuntimeDeps(): BrainstormDeps {
     loadKb: async () => {
       const [products, knowledge] = await Promise.all([
         prisma.product.findMany({ where: { attivo: true } }),
-        prisma.knowledgeItem.findMany(),
+        loadKnowledgeKbItems(),
       ]);
       return { products, knowledge };
     },

@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { getClaude, BRAINSTORM_MODEL } from "@/lib/claude";
 import { buildKbContext } from "@/lib/brain/context";
+import { loadKnowledgeKbItems } from "@/lib/knowledge/items";
 import { buildMetaPrompt } from "./prompt";
 import { payloadSchemaFor } from "./schema";
 import type { MetaDeps, MetaClaudeResult } from "./generate";
@@ -22,7 +23,7 @@ export function buildMetaDeps(): MetaDeps {
       if (!idea) throw new Error("Idea non trovata");
       if (idea.status !== "APPROVATA") throw new Error("Idea non approvata: genera solo da idee APPROVATA");
 
-      const knowledge = await prisma.knowledgeItem.findMany();
+      const knowledge = await loadKnowledgeKbItems();
       const products = idea.product ? [idea.product] : [];
       const kbContext = buildKbContext({ products, knowledge });
       return {

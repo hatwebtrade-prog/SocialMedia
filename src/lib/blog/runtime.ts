@@ -2,6 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { getClaude, BRAINSTORM_MODEL } from "@/lib/claude";
 import { buildKbContext } from "@/lib/brain/context";
 import { stripFences } from "@/lib/meta/runtime";
+import { loadKnowledgeKbItems } from "@/lib/knowledge/items";
 import { fetchKeywords } from "@/lib/seozoom/client";
 import type { NormalizedKeyword } from "@/lib/seozoom/select";
 import { fetchProductsWithMetafields } from "@/lib/shopify/products";
@@ -24,7 +25,7 @@ export function buildBlogDeps(): BlogDeps {
       const idea = await prisma.idea.findUnique({ where: { id: ideaId } });
       if (!idea) throw new Error("Idea non trovata");
       if (idea.status !== "APPROVATA") throw new Error("Idea non approvata: genera solo da idee APPROVATA");
-      const knowledge = await prisma.knowledgeItem.findMany();
+      const knowledge = await loadKnowledgeKbItems();
       const product = idea.productId ? await prisma.product.findUnique({ where: { id: idea.productId } }) : null;
       const kbContext = buildKbContext({ products: product ? [product] : [], knowledge });
       let prodotti = [] as Awaited<ReturnType<typeof fetchProductsWithMetafields>>;
