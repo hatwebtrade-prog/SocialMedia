@@ -17,6 +17,7 @@ export interface PromptCtx {
   hasMockup?: boolean;
   productName?: string;
   fallback?: string;
+  brandVisual?: string;
 }
 
 const SCENE_FIELDS: (keyof ImageBrief)[] = ["soggetto", "ambientazione", "luce", "inquadratura", "mood"];
@@ -41,7 +42,7 @@ export function buildImagePromptFromBrief(brief: ImageBrief, ctx: PromptCtx): st
 
   if (ctx.provider === "HIGGSFIELD") {
     const holding = b.tieneProdotto ? "che tiene il prodotto" : "";
-    const phrase = [soggetto, b.ambientazione, b.luce, b.inquadratura, b.mood, holding, b.note]
+    const phrase = [soggetto, b.ambientazione, b.luce, b.inquadratura, b.mood, holding, b.note, ctx.brandVisual]
       .map((s) => (s || "").trim())
       .filter(Boolean)
       .join(", ");
@@ -61,5 +62,6 @@ export function buildImagePromptFromBrief(brief: ImageBrief, ctx: PromptCtx): st
   const product = ctx.hasMockup
     ? " Mantieni il prodotto IDENTICO al packaging di riferimento (etichetta, forma, colori, testo invariati), inserito in modo naturale."
     : "";
-  return `${scene} Una SINGOLA fotografia iperrealistica, indistinguibile da uno scatto reale: full-frame 50mm, luce naturale morbida, pelle e mani realistiche.${product} VIETATO nell'immagine: testo, scritte, loghi, watermark, collage, riquadri multipli, aspetto 3D/cartoon/CGI.`;
+  const brand = ctx.brandVisual ? ` ${ctx.brandVisual}` : "";
+  return `${scene} Una SINGOLA fotografia iperrealistica, indistinguibile da uno scatto reale: full-frame 50mm, luce naturale morbida, pelle e mani realistiche.${product} VIETATO nell'immagine: testo, scritte, loghi, watermark, collage, riquadri multipli, aspetto 3D/cartoon/CGI.${brand}`;
 }

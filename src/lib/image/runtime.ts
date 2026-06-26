@@ -12,7 +12,7 @@ interface MetaPayloadShape {
   slides?: Array<{ testo?: string }>;
 }
 
-function sharedImageDeps(): Pick<ImageDeps, "loadMockup" | "callOpenAI" | "persistAsset" | "ensureHiggsfieldRef"> {
+function sharedImageDeps(): Pick<ImageDeps, "loadMockup" | "callOpenAI" | "persistAsset" | "ensureHiggsfieldRef" | "loadBrandVisual"> {
   return {
     loadMockup: async (productId) => {
       const product = await prisma.product.findUnique({ where: { id: productId }, select: { imagePath: true } });
@@ -35,6 +35,12 @@ function sharedImageDeps(): Pick<ImageDeps, "loadMockup" | "callOpenAI" | "persi
     ensureHiggsfieldRef: async (productId) => {
       const product = await prisma.product.findUnique({ where: { id: productId }, select: { higgsfieldSoulId: true } });
       return product?.higgsfieldSoulId ?? null;
+    },
+
+    loadBrandVisual: async () => {
+      const p = await prisma.brandVisualProfile.findUnique({ where: { id: "default" } });
+      if (!p) return null;
+      return { palette: p.palette, stileFotografico: p.stileFotografico, mood: p.mood, elementiRicorrenti: p.elementiRicorrenti, daEvitare: p.daEvitare };
     },
 
     persistAsset: async ({ input, prompt, bytes }) => {

@@ -1,6 +1,7 @@
 import { buildImagePrompt } from "./prompt";
 import { buildImagePromptFromBrief, isBriefEmpty, briefDimensions, type ImageBrief } from "./brief";
 import type { ImageProvider } from "./providers";
+import { buildBrandVisualContext } from "@/lib/knowledge/brand-context";
 
 export interface ImageGenInput {
   contentId: string;
@@ -18,6 +19,7 @@ export interface ImageDeps {
   callOpenAI: (prompt: string, mockup?: Buffer, provider?: ImageProvider, opts?: { styleId?: string; soulSize?: string; customReferenceId?: string }) => Promise<Buffer>;
   persistAsset: (args: { input: ImageGenInput; prompt: string; bytes: Buffer }) => Promise<{ assetId: string }>;
   ensureHiggsfieldRef?: (productId: string) => Promise<string | null>;
+  loadBrandVisual?: () => Promise<import("@/lib/knowledge/brand-context").BrandVisualData | null>;
 }
 
 export interface ImageGenResult {
@@ -34,8 +36,10 @@ export async function generateImageAsset(
     const { ideaCreativa, slideText } = await deps.loadContent(input.contentId, input.slideIndex);
     const mockup = input.useMockup && input.productId ? await deps.loadMockup(input.productId) : null;
     const fallback = slideText ? `${ideaCreativa}. ${slideText}` : ideaCreativa;
+    const brandProfile = deps.loadBrandVisual ? await deps.loadBrandVisual() : null;
+    const brandVisual = brandProfile ? buildBrandVisualContext(brandProfile, input.provider ?? "GPT") : undefined;
     const prompt = input.brief && !isBriefEmpty(input.brief)
-      ? buildImagePromptFromBrief(input.brief, { provider: input.provider ?? "GPT", hasMockup: !!mockup, fallback })
+      ? buildImagePromptFromBrief(input.brief, { provider: input.provider ?? "GPT", hasMockup: !!mockup, fallback, brandVisual })
       : buildImagePrompt({ ideaCreativa, slideText, hasMockup: !!mockup });
     const soulSize = briefDimensions(input.brief?.formato).soul;
     const styleId = input.styleId ?? input.brief?.stile;

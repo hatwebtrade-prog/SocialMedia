@@ -35,3 +35,12 @@ describe("briefDimensions", () => {
     expect(briefDimensions(undefined).openaiSize).toBe("1024x1024");
   });
 });
+
+describe("buildImagePromptFromBrief brandVisual", () => {
+  it("includes brandVisual context for both providers", () => {
+    const g = buildImagePromptFromBrief({ soggetto: "x" }, { provider: "GPT", brandVisual: "Coerenza brand Agocap: palette verde." });
+    expect(g).toContain("palette verde");
+    const h = buildImagePromptFromBrief({ soggetto: "x" }, { provider: "HIGGSFIELD", brandVisual: "palette verde" });
+    expect(h).toContain("palette verde");
+  });
+});
