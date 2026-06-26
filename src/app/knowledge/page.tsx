@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { KNOWLEDGE_TYPES } from "@/lib/brain/enums";
 import { KnowledgeFiles } from "@/components/knowledge-files";
+import { BrandVisualEditor } from "@/components/brand-visual-editor";
 
 interface Item { id: string; tipo: string; titolo: string; contenuto: string; }
 
@@ -35,6 +36,7 @@ export default function KnowledgePage() {
     <div className="max-w-3xl">
       <h1 className="mb-4 text-2xl font-semibold">Knowledge Base</h1>
       <div className="space-y-6">
+        <BrandVisualEditor />
         <div className="rounded border bg-white p-4">
           <h2 className="mb-2 font-medium">Materiale testuale</h2>
           <div className="mb-6 space-y-3">
