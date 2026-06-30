@@ -20,10 +20,11 @@ export default function CestinoPage() {
     setLoading(true);
     try {
       const res = await fetch("/api/ideas/trash");
+      if (!res.ok) { show("Caricamento del cestino non riuscito.", "error"); setIdeas([]); return; }
       const data = await res.json();
       setIdeas(Array.isArray(data) ? data : []);
-    } catch { setIdeas([]); } finally { setLoading(false); }
-  }, []);
+    } catch { show("Caricamento del cestino non riuscito.", "error"); setIdeas([]); } finally { setLoading(false); }
+  }, [show]);
   useEffect(() => { load(); }, [load]);
 
   const restore = async (id: string) => {
