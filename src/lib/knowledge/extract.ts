@@ -17,9 +17,15 @@ export function pickFileKind(mimeType: string): FileKind | null {
 /** Extracts plain text from a document buffer (PDF/DOCX/TXT/MD). Throws on parser failure. */
 export async function extractText(buffer: Buffer, mimeType: string, filename = ""): Promise<string> {
   if (mimeType === "application/pdf") {
-    const pdf = (await import("pdf-parse")).default;
-    const data = await pdf(buffer);
-    return (data.text ?? "").trim();
+    // pdf-parse v2 is class-based (no default export): new PDFParse({data}).getText()
+    const { PDFParse } = await import("pdf-parse");
+    const parser = new PDFParse({ data: new Uint8Array(buffer) });
+    try {
+      const res = await parser.getText();
+      return (res.text ?? "").trim();
+    } finally {
+      await parser.destroy();
+    }
   }
   if (
     mimeType === "application/vnd.openxmlformats-officedocument.wordprocessingml.document" ||
