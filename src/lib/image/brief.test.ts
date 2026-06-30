@@ -44,3 +44,14 @@ describe("buildImagePromptFromBrief brandVisual", () => {
     expect(h).toContain("palette verde");
   });
 });
+
+describe("buildImagePromptFromBrief editorial", () => {
+  it("GPT: includes editorial context in prompt", () => {
+    const p = buildImagePromptFromBrief({ soggetto: "donna" }, { provider: "GPT", editorial: "EDIT_MARK" });
+    expect(p).toContain("EDIT_MARK");
+  });
+  it("HIGGSFIELD: includes editorial context in prompt", () => {
+    const p = buildImagePromptFromBrief({ soggetto: "donna" }, { provider: "HIGGSFIELD", editorial: "EDIT_MARK" });
+    expect(p).toContain("EDIT_MARK");
+  });
+});

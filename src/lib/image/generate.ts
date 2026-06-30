@@ -2,6 +2,7 @@ import { buildImagePrompt } from "./prompt";
 import { buildImagePromptFromBrief, isBriefEmpty, briefDimensions, type ImageBrief } from "./brief";
 import type { ImageProvider, ProviderOpts } from "./providers";
 import { buildBrandVisualContext } from "@/lib/knowledge/brand-context";
+import { buildEditorialImageContext, type EditorialDirectionData } from "@/lib/knowledge/editorial-context";
 
 export interface ImageGenInput {
   contentId: string;
@@ -20,6 +21,7 @@ export interface ImageDeps {
   persistAsset: (args: { input: ImageGenInput; prompt: string; bytes: Buffer }) => Promise<{ assetId: string }>;
   ensureHiggsfieldRef?: (productId: string) => Promise<string | null>;
   loadBrandVisual?: () => Promise<import("@/lib/knowledge/brand-context").BrandVisualData | null>;
+  loadEditorial?: () => Promise<{ direction: EditorialDirectionData; planTexts: string } | null>;
 }
 
 export interface ImageGenResult {
@@ -38,8 +40,12 @@ export async function generateImageAsset(
     const fallback = slideText ? `${ideaCreativa}. ${slideText}` : ideaCreativa;
     const brandProfile = deps.loadBrandVisual ? await deps.loadBrandVisual() : null;
     const brandVisual = brandProfile ? buildBrandVisualContext(brandProfile, input.provider ?? "GPT") : undefined;
+    const editorialData = deps.loadEditorial ? await deps.loadEditorial() : null;
+    const editorial = editorialData
+      ? buildEditorialImageContext(editorialData.direction, editorialData.planTexts, input.provider ?? "GPT")
+      : undefined;
     const prompt = input.brief && !isBriefEmpty(input.brief)
-      ? buildImagePromptFromBrief(input.brief, { provider: input.provider ?? "GPT", hasMockup: !!mockup, fallback, brandVisual })
+      ? buildImagePromptFromBrief(input.brief, { provider: input.provider ?? "GPT", hasMockup: !!mockup, fallback, brandVisual, editorial })
       : buildImagePrompt({ ideaCreativa, slideText, hasMockup: !!mockup });
     const soulSize = briefDimensions(input.brief?.formato).soul;
     const styleId = input.styleId ?? input.brief?.stile;

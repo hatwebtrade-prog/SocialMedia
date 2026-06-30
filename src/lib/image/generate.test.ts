@@ -61,4 +61,16 @@ describe("generateImageAsset", () => {
     const opts = (deps.callOpenAI as any).mock.calls[0][3];
     expect(opts.openaiSize).toBe("1024x1024");
   });
+
+  it("injects editorial direction into prompt when loadEditorial is provided", async () => {
+    const deps = makeDeps({
+      loadEditorial: vi.fn().mockResolvedValue({ direction: { campagna: "Estate 2026" }, planTexts: "" }),
+    });
+    await generateImageAsset(
+      { contentId: "c1", slideIndex: null, provider: "GPT", brief: { soggetto: "donna" } },
+      deps as any,
+    );
+    const prompt = (deps.callOpenAI as any).mock.calls[0][0] as string;
+    expect(prompt).toContain("Direzione editoriale Agocap");
+  });
 });

@@ -12,7 +12,7 @@ interface MetaPayloadShape {
   slides?: Array<{ testo?: string }>;
 }
 
-function sharedImageDeps(): Pick<ImageDeps, "loadMockup" | "callOpenAI" | "persistAsset" | "ensureHiggsfieldRef" | "loadBrandVisual"> {
+function sharedImageDeps(): Pick<ImageDeps, "loadMockup" | "callOpenAI" | "persistAsset" | "ensureHiggsfieldRef" | "loadBrandVisual" | "loadEditorial"> {
   return {
     loadMockup: async (productId) => {
       const product = await prisma.product.findUnique({ where: { id: productId }, select: { imagePath: true } });
@@ -41,6 +41,29 @@ function sharedImageDeps(): Pick<ImageDeps, "loadMockup" | "callOpenAI" | "persi
       const p = await prisma.brandVisualProfile.findUnique({ where: { id: "default" } });
       if (!p) return null;
       return { palette: p.palette, stileFotografico: p.stileFotografico, mood: p.mood, elementiRicorrenti: p.elementiRicorrenti, daEvitare: p.daEvitare };
+    },
+
+    loadEditorial: async () => {
+      const [direction, items, files] = await Promise.all([
+        prisma.editorialDirection.findUnique({ where: { id: "default" } }),
+        prisma.knowledgeItem.findMany({ where: { tipo: "PIANO_EDITORIALE" }, orderBy: { createdAt: "desc" } }),
+        prisma.knowledgeFile.findMany({ where: { stato: "PRONTO", kind: "DOCUMENTO", knowledgeType: "PIANO_EDITORIALE", NOT: { testo: null } }, orderBy: { createdAt: "desc" } }),
+      ]);
+      const planTexts = [
+        ...items.map((i) => (i.contenuto ?? "").slice(0, 800)),
+        ...files.map((f) => (f.testo ?? "").slice(0, 800)),
+      ].filter((t) => t.trim()).join("\n").slice(0, 1500);
+      return {
+        direction: {
+          campagna: direction?.campagna ?? null,
+          periodo: direction?.periodo ?? null,
+          temi: direction?.temi ?? null,
+          tonoVisivo: direction?.tonoVisivo ?? null,
+          daMostrare: direction?.daMostrare ?? null,
+          daEvitare: direction?.daEvitare ?? null,
+        },
+        planTexts,
+      };
     },
 
     persistAsset: async ({ input, prompt, bytes }) => {
