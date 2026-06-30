@@ -78,9 +78,46 @@ export async function publishFacebook(
 }
 
 export async function publishInstagram(
-  _cfg: GraphConfig,
-  _a: { postType: MetaPostType; caption: string; images: MetaImage[] },
-  _fetchImpl: typeof fetch = fetch,
+  cfg: GraphConfig,
+  a: { postType: MetaPostType; caption: string; images: MetaImage[] },
+  fetchImpl: typeof fetch = fetch,
 ): Promise<{ postId: string }> {
-  throw new Error("publishInstagram non ancora implementato (Task 6)");
+  const url = (path: string, params: Record<string, string>) =>
+    `${base(cfg)}/${path}?` + new URLSearchParams({ ...params, access_token: cfg.token }).toString();
+  const POST = (u: string) => gfetch(fetchImpl, u, { method: "POST" });
+
+  const createImageContainer = async (imageUrl: string | undefined, extra: Record<string, string>) => {
+    if (!imageUrl) throw new Error("IG richiede un image_url pubblico (raggiungibile da internet)");
+    return POST(url(`${cfg.igAccountId}/media`, { image_url: imageUrl, ...extra }));
+  };
+  const waitFinished = async (creationId: string) => {
+    for (let i = 0; i < 12; i++) {
+      const s = await gfetch(fetchImpl, url(creationId, { fields: "status_code" }), { method: "GET" });
+      if (s.status_code === "FINISHED") return;
+      if (s.status_code === "ERROR") throw new Error("IG container in stato ERROR");
+      await new Promise((r) => setTimeout(r, 3000));
+    }
+  };
+  const publish = async (creationId: string) => {
+    await waitFinished(creationId);
+    const r = await POST(url(`${cfg.igAccountId}/media_publish`, { creation_id: creationId }));
+    return { postId: String(r.id) };
+  };
+
+  if (a.postType === "carousel") {
+    const children: string[] = [];
+    for (const img of a.images) {
+      const c = await createImageContainer(img.url, { is_carousel_item: "true" });
+      children.push(String(c.id));
+    }
+    const cont = await POST(url(`${cfg.igAccountId}/media`, { media_type: "CAROUSEL", children: children.join(","), caption: a.caption }));
+    return publish(String(cont.id));
+  }
+  if (a.postType === "story") {
+    const cont = await createImageContainer(a.images[0]?.url, { media_type: "STORIES" });
+    return publish(String(cont.id));
+  }
+  // image
+  const cont = await createImageContainer(a.images[0]?.url, { caption: a.caption });
+  return publish(String(cont.id));
 }
