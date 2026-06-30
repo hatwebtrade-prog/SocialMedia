@@ -37,6 +37,7 @@ export default function BlogDetailPage({ params }: { params: Promise<{ id: strin
   const [imgMsg, setImgMsg] = useState<string | null>(null);
   const [provider, setProvider] = useState("GPT");
   const [brief, setBrief] = useState<Brief>({});
+  const [confirmOverwrite, setConfirmOverwrite] = useState(false);
   useEffect(() => { fetch("/api/blog/shopify-blogs").then((r) => r.json()).then((d) => setBlogs(Array.isArray(d) ? d : [])).catch(() => setBlogs([])); }, []);
   useEffect(() => { fetch("/api/products").then((r) => r.json()).then((d) => setProducts(Array.isArray(d) ? d : [])).catch(() => setProducts([])); }, []);
 
@@ -70,6 +71,7 @@ export default function BlogDetailPage({ params }: { params: Promise<{ id: strin
   };
 
   const genImage = async () => {
+    setConfirmOverwrite(false);
     setImgBusy(true); setImgMsg(null);
     try {
       const res = await fetch(`/api/blog/contents/${id}/image`, {
@@ -161,7 +163,18 @@ export default function BlogDetailPage({ params }: { params: Promise<{ id: strin
           {provider === "MANUAL" ? (
             <input type="file" accept="image/*" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadImage(f); }} className="text-sm" />
           ) : (
-            <button onClick={genImage} disabled={imgBusy} className="rounded bg-emerald-600 px-3 py-1 text-white disabled:opacity-40">{imgBusy ? "Genero…" : (c.assets?.[0] ? "Rigenera immagine" : "Genera immagine")}</button>
+            (() => { const hasImg = !!c.assets?.[0]; return (
+              <button
+                onClick={() => {
+                  if (hasImg && !confirmOverwrite) { setConfirmOverwrite(true); return; }
+                  genImage();
+                }}
+                disabled={imgBusy}
+                className="rounded bg-emerald-600 px-3 py-1 text-white disabled:opacity-40"
+              >
+                {imgBusy ? "Genero…" : confirmOverwrite ? "Sovrascrivi immagine? Clicca di nuovo" : (hasImg ? "Rigenera immagine" : "Genera immagine")}
+              </button>
+            ); })()
           )}
         </div>
         <ImageBriefForm provider={provider} value={brief} onChange={setBrief} />

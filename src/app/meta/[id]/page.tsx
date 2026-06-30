@@ -28,6 +28,7 @@ export default function MetaContentDetail() {
   const [useMockup, setUseMockup] = useState(false);
   const [provider, setProvider] = useState("GPT");
   const [brief, setBrief] = useState<Brief>({});
+  const [confirmKey, setConfirmKey] = useState<string | null>(null);
   useEffect(() => { fetch("/api/products").then((r) => r.json()).then((d) => setProducts(Array.isArray(d) ? d : [])).catch(() => setProducts([])); }, []);
 
   const load = useCallback(async () => {
@@ -42,7 +43,7 @@ export default function MetaContentDetail() {
   };
 
   const genImage = async (slideIndex: number | null) => {
-    setBusyImg(`${slideIndex}`); setMsg(null);
+    setBusyImg(`${slideIndex}`); setConfirmKey(null); setMsg(null);
     const res = await fetch(`/api/meta/contents/${id}/image`, {
       method: "POST", headers: { "content-type": "application/json" },
       body: JSON.stringify({ slideIndex, productId: refProductId || undefined, useMockup: useMockup && !!refProductId, provider, brief, styleId: brief.stile }),
@@ -121,7 +122,16 @@ export default function MetaContentDetail() {
         {provider === "MANUAL" ? (
           <input type="file" accept="image/*" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadImage(null, f); }} className="text-sm" />
         ) : (
-          <button onClick={() => genImage(null)} disabled={busyImg === "null"} className="rounded bg-emerald-600 px-3 py-1 text-sm text-white disabled:opacity-40">{busyImg === "null" ? "Genero…" : "Genera immagine"}</button>
+          <button
+            onClick={() => {
+              if (assetFor(null) && confirmKey !== "null") { setConfirmKey("null"); return; }
+              genImage(null);
+            }}
+            disabled={busyImg === "null"}
+            className="rounded bg-emerald-600 px-3 py-1 text-sm text-white disabled:opacity-40"
+          >
+            {busyImg === "null" ? "Genero…" : confirmKey === "null" ? "Sovrascrivi? Clicca di nuovo" : "Genera immagine"}
+          </button>
         )}
       </div>
 
@@ -136,7 +146,17 @@ export default function MetaContentDetail() {
           {provider === "MANUAL" ? (
             <input type="file" accept="image/*" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadImage(idx, f); }} className="text-sm" />
           ) : (
-            <button onClick={() => genImage(idx)} disabled={busyImg === `${idx}`} className="rounded bg-emerald-600 px-3 py-1 text-sm text-white disabled:opacity-40">{busyImg === `${idx}` ? "Genero…" : "Genera immagine slide"}</button>
+            <button
+              onClick={() => {
+                const k = `${idx}`;
+                if (assetFor(idx) && confirmKey !== k) { setConfirmKey(k); return; }
+                genImage(idx);
+              }}
+              disabled={busyImg === `${idx}`}
+              className="rounded bg-emerald-600 px-3 py-1 text-sm text-white disabled:opacity-40"
+            >
+              {busyImg === `${idx}` ? "Genero…" : confirmKey === `${idx}` ? "Sovrascrivi? Clicca di nuovo" : "Genera immagine slide"}
+            </button>
           )}
         </div>
       ))}
