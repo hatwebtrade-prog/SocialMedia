@@ -8,7 +8,9 @@ export async function GET() {
 }
 
 export async function PUT(request: Request) {
-  const parsed = editorialDirectionSchema.safeParse(await request.json().catch(() => ({})));
+  let body: unknown;
+  try { body = await request.json(); } catch { return NextResponse.json({ error: "Input non valido" }, { status: 400 }); }
+  const parsed = editorialDirectionSchema.safeParse(body);
   if (!parsed.success) return NextResponse.json({ error: "Input non valido" }, { status: 400 });
   const p = parsed.data;
   const data = {
