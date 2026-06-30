@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import Link from "next/link";
 import { PageHeader, Card, Button, Pill, EmptyState, useToast } from "@/components/ui";
 
 interface TrashIdea {
