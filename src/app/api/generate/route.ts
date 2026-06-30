@@ -3,12 +3,14 @@ import { z } from "zod";
 import { runBrainstorm } from "@/lib/brain/generate";
 import { buildRuntimeDeps } from "@/lib/brain/runtime";
 import { getDepsFactory } from "./deps-registry";
+import { DESTINAZIONI } from "@/lib/brain/enums";
 
 const inputSchema = z.object({
   prodotto: z.string().optional(),
   categoria: z.string().optional(),
   angolo: z.string().optional(),
   keywordSeed: z.string().optional(),
+  destinazioni: z.array(z.enum(DESTINAZIONI)).optional(),
   count: z.number().int().min(1).max(20),
 });
 

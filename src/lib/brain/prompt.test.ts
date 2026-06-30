@@ -14,4 +14,23 @@ describe("buildBrainstormPrompt", () => {
     expect(prompt.toLowerCase()).toContain("educational");
     expect(prompt.toLowerCase()).toContain("stagionalità");
   });
+
+  it("adds a destination-channel section when destinazioni are selected", () => {
+    const prompt = buildBrainstormPrompt({
+      kbContext: "## Prodotti Agocap",
+      input: { destinazioni: ["TIKTOK", "META"], count: 3 },
+    });
+    expect(prompt).toContain("Canali di destinazione");
+    expect(prompt).toContain("TikTok");
+    expect(prompt).toContain("Instagram e Facebook");
+    expect(prompt).toContain("piattaformeConsigliate");
+  });
+
+  it("omits the destination section when none are selected", () => {
+    const prompt = buildBrainstormPrompt({
+      kbContext: "## Prodotti Agocap",
+      input: { count: 3 },
+    });
+    expect(prompt).not.toContain("Canali di destinazione");
+  });
 });

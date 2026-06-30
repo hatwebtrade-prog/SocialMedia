@@ -104,6 +104,7 @@ export function buildRuntimeDeps(): BrainstormDeps {
               seoScore: d.seoScore,
               viralityScore: d.viralityScore,
               priority: d.priority,
+              destinazioni: args.input.destinazioni ?? [],
               productId: linkProductId(d.prodottoCollegato, products),
               sourceId: source.id,
               generationRunId: run.id,

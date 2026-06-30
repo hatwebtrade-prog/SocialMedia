@@ -1,10 +1,22 @@
+import type { DestinazioneValue } from "./enums";
+
 export interface BrainstormInput {
   prodotto?: string;
   categoria?: string;
   angolo?: string;
   keywordSeed?: string;
+  destinazioni?: DestinazioneValue[];
   count: number;
 }
+
+// What each editorial destination means in terms of content shape, so Claude can
+// tailor the ideas (and piattaformeConsigliate) to the channels the user picked.
+const DESTINAZIONE_GUIDA: Record<DestinazioneValue, string> = {
+  META: "Meta (Instagram e Facebook): post, caroselli, reel e storie — piattaforme INSTAGRAM/FACEBOOK",
+  BLOG: "Blog: articolo SEO long-form — piattaforma BLOG",
+  TIKTOK: "TikTok: video brevi con hook virali e script parlato — piattaforma TIKTOK",
+  EMAIL: "Email: newsletter o email promozionale/educazionale per la lista contatti",
+};
 
 export function buildBrainstormPrompt(args: {
   kbContext: string;
@@ -17,6 +29,13 @@ export function buildBrainstormPrompt(args: {
   if (input.angolo) richieste.push(`Angolo creativo: ${input.angolo}`);
   if (input.keywordSeed) richieste.push(`Keyword seed: ${input.keywordSeed}`);
 
+  const destinazioni = input.destinazioni ?? [];
+  const sezioneDestinazioni = destinazioni.length
+    ? `\n\n# Canali di destinazione\nGenera idee pensate per essere pubblicate su questi canali:\n${destinazioni
+        .map((d) => `- ${DESTINAZIONE_GUIDA[d]}`)
+        .join("\n")}\nAdatta il taglio di ogni idea a questi canali e imposta \`piattaformeConsigliate\` di conseguenza.`
+    : "";
+
   return `Sei un esperto di content marketing per Agocap, brand di integratori, benessere, beauty e salute naturale.
 
 Genera esattamente ${input.count} idee di contenuto, ancorate alla knowledge base aziendale qui sotto.
@@ -25,7 +44,7 @@ Genera esattamente ${input.count} idee di contenuto, ancorate alla knowledge bas
 ${kbContext}
 
 # Richieste
-${richieste.length ? richieste.join("\n") : "Nessuna preferenza specifica: spazia liberamente."}
+${richieste.length ? richieste.join("\n") : "Nessuna preferenza specifica: spazia liberamente."}${sezioneDestinazioni}
 
 # Angoli editoriali da considerare
 Usa un mix di questi angoli quando pertinenti: educational, soft selling, vendita diretta,
