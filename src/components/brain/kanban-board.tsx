@@ -31,7 +31,7 @@ export function KanbanBoard({ ideas, setIdeas, selected, onToggleSelect, showDis
     setIdeas((prev) => applyMove(prev, id, target as IdeaStatus));
     const ok = await persist(id, target as IdeaStatus);
     if (!ok) {
-      setIdeas((prev) => applyMove(prev, id, previous as IdeaStatus));
+      setIdeas((prev) => applyMove(prev, id, previous));
       show("Spostamento non riuscito, ripristinato.", "error");
     }
   };
@@ -40,7 +40,7 @@ export function KanbanBoard({ ideas, setIdeas, selected, onToggleSelect, showDis
     <DndContext sensors={sensors} onDragEnd={onDragEnd}>
       <div className="flex gap-4 overflow-x-auto pb-2">
         {columns.map((col) => (
-          <KanbanColumn key={col.status} column={col} ideas={grouped[col.status]} selected={selected} onToggleSelect={onToggleSelect} />
+          <KanbanColumn key={col.status} column={col} ideas={grouped[col.status] ?? []} selected={selected} onToggleSelect={onToggleSelect} />
         ))}
       </div>
     </DndContext>

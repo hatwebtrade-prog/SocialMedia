@@ -3,13 +3,13 @@
 import Link from "next/link";
 import { Card, Pill } from "@/components/ui";
 import { ChannelIcons } from "@/components/channel-icon";
-import { formatStat, formatVolume } from "@/lib/brain/kanban";
+import { formatStat, formatVolume, type IdeaStatus } from "@/lib/brain/kanban";
 
 export interface KanbanIdea {
   id: string;
   titolo: string;
   category: string;
-  status: string;
+  status: IdeaStatus;
   priority: number;
   seoScore: number;
   keyword?: string | null;
