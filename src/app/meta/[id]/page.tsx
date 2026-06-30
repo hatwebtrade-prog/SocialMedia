@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { CONTENT_STATUSES } from "@/lib/meta/enums";
 import { ImageBriefForm, type Brief } from "@/components/image-brief";
+import { ProductMockupPicker, type ProductMockupValue } from "@/components/product-mockup-picker";
 
 interface Asset { id: string; slideIndex: number | null; }
 interface Content {
@@ -24,11 +25,14 @@ export default function MetaContentDetail() {
   const [busyImg, setBusyImg] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [products, setProducts] = useState<{ id: string; nome: string; imagePath: string | null }[]>([]);
-  const [refProductId, setRefProductId] = useState("");
-  const [useMockup, setUseMockup] = useState(false);
   const [provider, setProvider] = useState("GPT");
   const [brief, setBrief] = useState<Brief>({});
+  const [perImage, setPerImage] = useState<Record<string, ProductMockupValue>>({});
   useEffect(() => { fetch("/api/products").then((r) => r.json()).then((d) => setProducts(Array.isArray(d) ? d : [])).catch(() => setProducts([])); }, []);
+
+  const keyFor = (slideIndex: number | null) => (slideIndex === null ? "post" : String(slideIndex));
+  const valueFor = (slideIndex: number | null): ProductMockupValue => perImage[keyFor(slideIndex)] ?? { productId: "", useMockup: false };
+  const setValueFor = (slideIndex: number | null, next: ProductMockupValue) => setPerImage((prev) => ({ ...prev, [keyFor(slideIndex)]: next }));
 
   const load = useCallback(async () => {
     const res = await fetch(`/api/meta/contents/${id}`);
@@ -43,9 +47,10 @@ export default function MetaContentDetail() {
 
   const genImage = async (slideIndex: number | null) => {
     setBusyImg(`${slideIndex}`); setMsg(null);
+    const v = valueFor(slideIndex);
     const res = await fetch(`/api/meta/contents/${id}/image`, {
       method: "POST", headers: { "content-type": "application/json" },
-      body: JSON.stringify({ slideIndex, productId: refProductId || undefined, useMockup: useMockup && !!refProductId, provider, brief, styleId: brief.stile }),
+      body: JSON.stringify({ slideIndex, productId: v.productId || undefined, useMockup: v.useMockup && !!v.productId, provider, brief, styleId: brief.stile }),
     });
     const json = await res.json();
     setBusyImg(null);
@@ -87,7 +92,7 @@ export default function MetaContentDetail() {
       <p className="mb-3 text-sm text-neutral-600">Hashtag: {(p.hashtags ?? []).join(" ")}</p>
 
       <div className="mb-4 rounded border bg-neutral-50 p-3 text-sm">
-        <div className="mb-2 font-medium">Immagine prodotto (mockup) per la generazione</div>
+        <div className="mb-2 font-medium">Generatore immagini (provider + brief)</div>
         <div className="flex flex-wrap items-center gap-3">
           <select value={provider} onChange={(e) => setProvider(e.target.value)} className="rounded border p-1">
             <option value="GPT">GPT (OpenAI)</option>
@@ -95,20 +100,8 @@ export default function MetaContentDetail() {
             <option value="HIGGSFIELD">Higgsfield</option>
             <option value="MANUAL">Caricamento manuale</option>
           </select>
-          <select value={refProductId} onChange={(e) => setRefProductId(e.target.value)} className="rounded border p-1">
-            <option value="">Nessun prodotto</option>
-            {products.filter((p) => p.imagePath).map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
-          </select>
-          <label className="flex items-center gap-1">
-            <input type="checkbox" checked={useMockup} onChange={(e) => setUseMockup(e.target.checked)} disabled={!refProductId} />
-            Inserisci il mockup nel contesto (image-edit)
-          </label>
-          {refProductId && useMockup && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img src={`/api/products/${refProductId}/image`} alt="" className="h-14 w-14 rounded border object-contain" />
-          )}
         </div>
-        <p className="mt-1 text-xs text-neutral-500">Se attivo, l'immagine generata (post o slide) sarà guidata dal mockup reale del prodotto.</p>
+        <p className="mt-1 text-xs text-neutral-500">Provider e brief valgono per tutte le immagini. Il prodotto si sceglie per singola immagine qui sotto.</p>
         <ImageBriefForm provider={provider} value={brief} onChange={setBrief} />
       </div>
 
@@ -121,7 +114,10 @@ export default function MetaContentDetail() {
         {provider === "MANUAL" ? (
           <input type="file" accept="image/*" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadImage(null, f); }} className="text-sm" />
         ) : (
-          <button onClick={() => genImage(null)} disabled={busyImg === "null"} className="rounded bg-emerald-600 px-3 py-1 text-sm text-white disabled:opacity-40">{busyImg === "null" ? "Genero…" : "Genera immagine"}</button>
+          <>
+            <div className="mb-2"><ProductMockupPicker products={products} value={valueFor(null)} onChange={(v) => setValueFor(null, v)} /></div>
+            <button onClick={() => genImage(null)} disabled={busyImg === "null"} className="rounded bg-emerald-600 px-3 py-1 text-sm text-white disabled:opacity-40">{busyImg === "null" ? "Genero…" : "Genera immagine"}</button>
+          </>
         )}
       </div>
 
@@ -136,7 +132,10 @@ export default function MetaContentDetail() {
           {provider === "MANUAL" ? (
             <input type="file" accept="image/*" onChange={(e) => { const f = e.target.files?.[0]; if (f) uploadImage(idx, f); }} className="text-sm" />
           ) : (
-            <button onClick={() => genImage(idx)} disabled={busyImg === `${idx}`} className="rounded bg-emerald-600 px-3 py-1 text-sm text-white disabled:opacity-40">{busyImg === `${idx}` ? "Genero…" : "Genera immagine slide"}</button>
+            <>
+              <div className="mb-2"><ProductMockupPicker products={products} value={valueFor(idx)} onChange={(v) => setValueFor(idx, v)} /></div>
+              <button onClick={() => genImage(idx)} disabled={busyImg === `${idx}`} className="rounded bg-emerald-600 px-3 py-1 text-sm text-white disabled:opacity-40">{busyImg === `${idx}` ? "Genero…" : "Genera immagine slide"}</button>
+            </>
           )}
         </div>
       ))}
