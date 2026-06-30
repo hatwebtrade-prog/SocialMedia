@@ -239,6 +239,8 @@ model GeneratedContent {
   publishedAt        DateTime?
   shopifyArticleId   String?
   shopifyArticleUrl  String?
+  facebookPostId     String?
+  instagramPostId    String?
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
   assets        GeneratedAsset[]
