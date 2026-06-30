@@ -1,0 +1,274 @@
+{
+  "name": "AGOCAP - Meta Auto Publisher",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "agocap-meta-publish",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-receive",
+      "name": "Webhook - Receive Approved Meta Content",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        300
+      ],
+      "webhookId": "agocap-meta-publish"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// AGOCAP Meta Auto Publisher — \"Validate, Auth & Dedup\"\n// Code node, mode: Run Once for All Items.\n// Reads the webhook event, checks the shared secret, validates required\n// fields, blocks duplicate content_id via workflow static data, and routes.\nconst ev = $input.first().json;\nconst headers = ev.headers || {};\nconst body = ev.body || {};\n\nconst secret = $env.AGOCAP_N8N_SECRET || '';\nconst got = headers['x-agocap-secret'] || headers['X-Agocap-Secret'] || '';\n\nfunction reject(httpStatus, reason, route) {\n  return [{ json: {\n    route,\n    httpStatus,\n    accepted: false,\n    content_id: body.content_id || null,\n    callback_url: body.status_callback_url || '',\n    error_message: reason,\n  } }];\n}\n\n// 1) Auth — never call back on auth failure (untrusted)\nif (!secret || got !== secret) {\n  return reject(401, 'Unauthorized', 'drop');\n}\n\n// 2) Required fields\nconst required = ['content_id', 'platforms', 'post_type', 'caption', 'status_callback_url'];\nfor (const f of required) {\n  if (body[f] === undefined || body[f] === null || body[f] === '') {\n    return reject(422, 'Missing required field: ' + f, 'reject_callback');\n  }\n}\n\nconst platforms = Array.isArray(body.platforms) ? body.platforms : [];\nconst type = body.post_type;\nconst media = Array.isArray(body.media_urls) ? body.media_urls : [];\nconst needsMedia = ['image', 'carousel', 'reel', 'story'].includes(type);\nif (needsMedia && !body.media_url && media.length === 0) {\n  return reject(422, 'Missing media for post_type ' + type, 'reject_callback');\n}\nif (platforms.includes('facebook') && !body.facebook_page_id) {\n  return reject(422, 'Missing facebook_page_id', 'reject_callback');\n}\nif (platforms.includes('instagram') && !body.instagram_account_id) {\n  return reject(422, 'Missing instagram_account_id', 'reject_callback');\n}\n\n// 3) Dedup via workflow static data\nconst sd = this.getWorkflowStaticData('global');\nsd.seen = sd.seen || {};\nconst prev = sd.seen[body.content_id];\nif (prev && (prev.status === 'publishing' || prev.status === 'published')) {\n  return reject(409, 'Duplicate publish attempt blocked', 'reject_callback');\n}\nsd.seen[body.content_id] = { status: 'publishing', started_at: new Date().toISOString() };\n\n// 4) Accepted — normalized payload for the publish step\nreturn [{ json: {\n  route: 'publish',\n  httpStatus: 200,\n  accepted: true,\n  content_id: body.content_id,\n  brand: body.brand || '',\n  product: body.product || '',\n  platforms,\n  post_type: type,\n  caption: body.caption,\n  media_url: body.media_url || '',\n  media_urls: media,\n  facebook_page_id: body.facebook_page_id || '',\n  instagram_account_id: body.instagram_account_id || '',\n  callback_url: body.status_callback_url,\n} }];\n"
+      },
+      "id": "validate-auth-dedup",
+      "name": "Validate, Auth & Dedup",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ accepted: $json.accepted, error: $json.error_message || null }) }}",
+        "options": {
+          "responseCode": "={{ $json.httpStatus }}"
+        }
+      },
+      "id": "respond-webhook",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        480,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "id": "rule-publish",
+                    "leftValue": "={{ $json.route }}",
+                    "rightValue": "publish",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "publish"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "id": "rule-reject_callback",
+                    "leftValue": "={{ $json.route }}",
+                    "rightValue": "reject_callback",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "reject_callback"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "id": "rule-drop",
+                    "leftValue": "={{ $json.route }}",
+                    "rightValue": "drop",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "drop"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "route",
+      "name": "Route",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [
+        720,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// AGOCAP Meta Auto Publisher — \"Publish to Meta\"\n// Code node, mode: Run Once for All Items.\n// Publishes to Facebook Page and/or Instagram Business via the Graph API.\n// Never throws: any error is caught and turned into a publish_failed callback.\nconst d = $input.first().json;\nconst apiVer = $env.META_API_VERSION || 'v20.0';\nconst token = $env.META_PAGE_ACCESS_TOKEN || '';\nconst base = 'https://graph.facebook.com/' + apiVer;\nconst helpers = this.helpers;\n\nconst post = (url, payload) => helpers.httpRequest({ method: 'POST', url, body: payload, json: true });\nconst get = (url) => helpers.httpRequest({ method: 'GET', url, json: true });\nconst sleep = (ms) => new Promise((r) => setTimeout(r, ms));\n\nconst media = d.media_urls && d.media_urls.length ? d.media_urls : (d.media_url ? [d.media_url] : []);\nlet fbId = null;\nlet igId = null;\nlet error = null;\n\ntry {\n  if (!token) throw new Error('META_PAGE_ACCESS_TOKEN non configurato in n8n');\n\n  // ---------- FACEBOOK ----------\n  if (d.platforms.includes('facebook') && d.facebook_page_id) {\n    const pid = d.facebook_page_id;\n    if (d.post_type === 'text') {\n      const r = await post(base + '/' + pid + '/feed', { message: d.caption, access_token: token });\n      fbId = r.id;\n    } else if (d.post_type === 'carousel') {\n      const attached = [];\n      for (const url of media) {\n        const r = await post(base + '/' + pid + '/photos', { url, published: false, access_token: token });\n        attached.push({ media_fbid: r.id });\n      }\n      const r = await post(base + '/' + pid + '/feed', { message: d.caption, attached_media: attached, access_token: token });\n      fbId = r.id;\n    } else if (d.post_type === 'image' || d.post_type === 'story') {\n      const r = await post(base + '/' + pid + '/photos', { url: media[0], caption: d.caption, access_token: token });\n      fbId = r.post_id || r.id;\n    }\n    // FB reel/video: handled lato app quando esisterà un asset video.\n  }\n\n  // ---------- INSTAGRAM ----------\n  if (d.platforms.includes('instagram') && d.instagram_account_id) {\n    const iid = d.instagram_account_id;\n\n    const publishContainer = async (creationId) => {\n      // IG container deve essere FINISHED prima del publish (immagini ~istantanee, video/reel no)\n      for (let i = 0; i < 12; i++) {\n        try {\n          const s = await get(base + '/' + creationId + '?fields=status_code&access_token=' + token);\n          if (s.status_code === 'FINISHED') break;\n          if (s.status_code === 'ERROR') throw new Error('IG container in ERROR');\n        } catch (e) { /* retry */ }\n        await sleep(3000);\n      }\n      const r = await post(base + '/' + iid + '/media_publish', { creation_id: creationId, access_token: token });\n      return r.id;\n    };\n\n    if (d.post_type === 'carousel') {\n      const children = [];\n      for (const url of media) {\n        const c = await post(base + '/' + iid + '/media', { image_url: url, is_carousel_item: true, access_token: token });\n        children.push(c.id);\n      }\n      const cont = await post(base + '/' + iid + '/media', { media_type: 'CAROUSEL', children: children.join(','), caption: d.caption, access_token: token });\n      igId = await publishContainer(cont.id);\n    } else if (d.post_type === 'story') {\n      const cont = await post(base + '/' + iid + '/media', { image_url: media[0], media_type: 'STORIES', access_token: token });\n      igId = await publishContainer(cont.id);\n    } else if (d.post_type === 'reel') {\n      // RICHIEDE un video_url pubblico — non testabile finché il generatore non produce video.\n      const cont = await post(base + '/' + iid + '/media', { media_type: 'REELS', video_url: media[0], caption: d.caption, access_token: token });\n      igId = await publishContainer(cont.id);\n    } else { // image\n      const cont = await post(base + '/' + iid + '/media', { image_url: media[0], caption: d.caption, access_token: token });\n      igId = await publishContainer(cont.id);\n    }\n  }\n} catch (e) {\n  error = (e && e.message) ? e.message : String(e);\n}\n\n// Aggiorna lo stato nel data store\nconst sd = this.getWorkflowStaticData('global');\nsd.seen = sd.seen || {};\nsd.seen[d.content_id] = { status: error ? 'publish_failed' : 'published', at: new Date().toISOString() };\n\nconst now = new Date().toISOString();\nconst callbackBody = error\n  ? { content_id: d.content_id, status: 'publish_failed', error_message: error, failed_at: now, facebook_post_id: fbId, instagram_post_id: igId }\n  : { content_id: d.content_id, status: 'published', published_at: now, facebook_post_id: fbId, instagram_post_id: igId };\n\nreturn [{ json: { callback_url: d.callback_url, callbackBody } }];\n"
+      },
+      "id": "publish-to-meta",
+      "name": "Publish to Meta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// AGOCAP Meta Auto Publisher — \"Build Reject Callback\"\n// Code node, mode: Run Once for All Items.\n// Turns a validation/dedup rejection into a publish_failed callback body.\nconst d = $input.first().json;\nreturn [{ json: {\n  callback_url: d.callback_url,\n  callbackBody: {\n    content_id: d.content_id,\n    status: 'publish_failed',\n    error_message: d.error_message,\n    failed_at: new Date().toISOString(),\n  },\n} }];\n"
+      },
+      "id": "build-reject-callback",
+      "name": "Build Reject Callback",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.callback_url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-agocap-secret",
+              "value": "={{ $env.AGOCAP_N8N_SECRET }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.callbackBody) }}",
+        "options": {}
+      },
+      "id": "callback-agocap",
+      "name": "Callback to AGOCAP",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1200,
+        300
+      ],
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "connections": {
+    "Webhook - Receive Approved Meta Content": {
+      "main": [
+        [
+          {
+            "node": "Validate, Auth & Dedup",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate, Auth & Dedup": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Respond to Webhook": {
+      "main": [
+        [
+          {
+            "node": "Route",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route": {
+      "main": [
+        [
+          {
+            "node": "Publish to Meta",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Reject Callback",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Publish to Meta": {
+      "main": [
+        [
+          {
+            "node": "Callback to AGOCAP",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Reject Callback": {
+      "main": [
+        [
+          {
+            "node": "Callback to AGOCAP",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
