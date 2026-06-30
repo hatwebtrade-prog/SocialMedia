@@ -2,12 +2,13 @@ import { NextResponse } from "next/server";
 import Anthropic from "@anthropic-ai/sdk";
 import { prisma } from "@/lib/prisma";
 import { loadKnowledgeKbItems } from "@/lib/knowledge/items";
-import { buildVisualProfilePrompt, parseVisualProfile } from "@/lib/knowledge/visual-profile";
+import { buildVisualProfilePrompt, parseVisualProfile, editorialDirectionBlock } from "@/lib/knowledge/visual-profile";
 
 export async function POST() {
   try {
     const items = await loadKnowledgeKbItems();
-    const materiale = items.map((i) => `[${i.tipo}] ${i.titolo}: ${i.contenuto}`).join("\n");
+    const direction = await prisma.editorialDirection.findUnique({ where: { id: "default" } });
+    const materiale = items.map((i) => `[${i.tipo}] ${i.titolo}: ${i.contenuto}`).join("\n") + editorialDirectionBlock(direction);
     if (!materiale.trim()) return NextResponse.json({ error: "Nessun materiale in Knowledge Base" }, { status: 400 });
 
     const client = new Anthropic();
