@@ -5,3 +5,4 @@ export { SegmentedControl } from "./segmented-control";
 export { PageHeader } from "./page-header";
 export { EmptyState } from "./empty-state";
 export { Skeleton } from "./skeleton";
+export { ToastProvider, useToast } from "./toast";
