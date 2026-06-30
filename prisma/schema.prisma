@@ -51,15 +51,16 @@ enum KnowledgeType {
 }
 
 model KnowledgeFile {
-  id        String            @id @default(cuid())
-  nome      String
-  path      String
-  mimeType  String
-  kind      KnowledgeFileKind
-  testo     String?
-  stato     FileStatus        @default(IN_CORSO)
-  errore    String?
-  createdAt DateTime          @default(now())
+  id            String            @id @default(cuid())
+  nome          String
+  path          String
+  mimeType      String
+  kind          KnowledgeFileKind
+  testo         String?
+  stato         FileStatus        @default(IN_CORSO)
+  errore        String?
+  knowledgeType KnowledgeType?
+  createdAt     DateTime          @default(now())
 }
 
 enum KnowledgeFileKind {
@@ -275,6 +276,17 @@ model GeneratedAsset {
   createdAt  DateTime         @default(now())
 
   @@index([contentId])
+}
+
+model EditorialDirection {
+  id          String   @id @default("default")
+  campagna    String?
+  periodo     String?
+  temi        String?
+  tonoVisivo  String?
+  daMostrare  String?
+  daEvitare   String?
+  updatedAt   DateTime @updatedAt
 }
 
 model BrandVisualProfile {
