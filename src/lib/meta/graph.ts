@@ -36,7 +36,7 @@ async function gfetch(f: typeof fetch, url: string, init: RequestInit) {
 
 async function fbUploadPhoto(cfg: GraphConfig, f: typeof fetch, bytes: Buffer, opts: { caption?: string; published: boolean }) {
   const form = new FormData();
-  form.append("source", new Blob([bytes], { type: "image/png" }), "image.png");
+  form.append("source", new Blob([bytes as unknown as BlobPart], { type: "image/png" }), "image.png");
   if (opts.caption) form.append("caption", opts.caption);
   form.append("published", String(opts.published));
   form.append("access_token", cfg.token);
