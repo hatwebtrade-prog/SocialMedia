@@ -1,7 +1,8 @@
 "use client";
 import { useEffect, useState, useCallback } from "react";
+import { KNOWLEDGE_TYPES } from "@/lib/brain/enums";
 
-interface KFile { id: string; nome: string; mimeType: string; kind: string; stato: string; errore?: string | null }
+interface KFile { id: string; nome: string; mimeType: string; kind: string; stato: string; errore?: string | null; knowledgeType?: string | null }
 
 export function KnowledgeFiles() {
   const [files, setFiles] = useState<KFile[]>([]);
@@ -23,6 +24,10 @@ export function KnowledgeFiles() {
     } catch { setMsg("Errore di rete."); } finally { setBusy(false); }
   };
   const remove = async (id: string) => { await fetch(`/api/knowledge/files/${id}`, { method: "DELETE" }); await load(); };
+  const setType = async (id: string, knowledgeType: string | null) => {
+    await fetch(`/api/knowledge/files/${id}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ knowledgeType }) });
+    await load();
+  };
 
   return (
     <div className="rounded border bg-white p-4">
@@ -39,6 +44,16 @@ export function KnowledgeFiles() {
               <img src={`/api/knowledge/files/${f.id}/raw`} alt="" className="h-10 w-10 rounded border object-contain" />
             ) : <span className="text-lg">📄</span>}
             <a href={`/api/knowledge/files/${f.id}/raw`} target="_blank" rel="noreferrer" className="flex-1 text-blue-600 hover:underline">{f.nome}</a>
+            {f.kind === "DOCUMENTO" && (
+              <select
+                value={f.knowledgeType ?? ""}
+                onChange={(e) => setType(f.id, e.target.value || null)}
+                className="rounded border px-1 py-0.5 text-xs text-neutral-700"
+              >
+                <option value="">—</option>
+                {KNOWLEDGE_TYPES.map((t) => <option key={t} value={t}>{t}</option>)}
+              </select>
+            )}
             <span className={`rounded px-1.5 py-0.5 text-xs ${f.stato === "PRONTO" ? "bg-green-100 text-green-700" : f.stato === "ERRORE" ? "bg-red-100 text-red-700" : "bg-amber-100 text-amber-700"}`}>{f.stato}</span>
             <button onClick={() => remove(f.id)} className="text-xs text-red-600 hover:underline">elimina</button>
           </li>
