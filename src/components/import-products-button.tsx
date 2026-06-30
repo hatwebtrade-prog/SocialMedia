@@ -16,7 +16,7 @@ export function ImportProductsButton() {
   return (
     <div className="mb-4 flex items-center gap-3 text-sm">
       <button onClick={run} disabled={busy} className="rounded-xl bg-sage-50 px-4 py-2 text-sm font-medium text-sage-700 hover:bg-sage-100 disabled:opacity-40">{busy ? "Importo…" : "Importa prodotti da Shopify"}</button>
-      {msg && <span className="text-neutral-600">{msg}</span>}
+      {msg && <span className="text-ink-soft">{msg}</span>}
     </div>
   );
 }
