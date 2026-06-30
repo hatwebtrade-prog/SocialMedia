@@ -1,5 +1,21 @@
 # AGOCAP — n8n Meta Auto Publisher
 
+> ⚠️ **PARCHEGGIATO (2026-06-30).** Si è scelto di pubblicare su Meta **direttamente
+> dall'app** (l'app ha il Page Access Token e chiama la Graph API), come fa Blog→Shopify.
+> Questo workflow n8n resta come alternativa "decoupled" ma **non è usato** dal flusso
+> attuale. Vedi `docs/superpowers/plans/2026-06-30-agocap-meta-direct-publish.md`.
+>
+> **Automazione della pubblicazione diretta** (senza n8n): un cron innesca l'endpoint
+> protetto `POST /api/meta/publish/dispatch`, che pubblica i contenuti META `PROGRAMMATO`
+> con `dataPrevista <= now`:
+> ```
+> curl -X POST -H "x-agocap-secret: $AGOCAP_N8N_SECRET" https://<app>/api/meta/publish/dispatch
+> ```
+> In locale l'app non è raggiungibile da internet: lancia il cron sulla **stessa macchina**
+> dell'app (es. Task Scheduler di Windows / cron) verso `http://localhost:8001/...`.
+
+---
+
 Workflow n8n che pubblica i contenuti **Meta** (Facebook Page + Instagram Business)
 generati e programmati in AGOCAP Content AI Hub, e riporta lo stato nel programma.
 
