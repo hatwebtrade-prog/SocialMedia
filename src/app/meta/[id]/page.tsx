@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { CONTENT_STATUSES } from "@/lib/meta/enums";
 import { ImageBriefForm, type Brief } from "@/components/image-brief";
 import { ProductMockupPicker, type ProductMockupValue } from "@/components/product-mockup-picker";
+import { MetaPublishButton } from "@/components/meta-publish-button";
 
 interface Asset { id: string; slideIndex: number | null; }
 interface Content {
@@ -17,6 +18,10 @@ interface Content {
   modello: string;
   idea?: { id: string; titolo: string } | null;
   assets: Asset[];
+  publicationStatus?: string;
+  publicationError?: string | null;
+  facebookPostId?: string | null;
+  instagramPostId?: string | null;
 }
 
 export default function MetaContentDetail() {
@@ -151,6 +156,24 @@ export default function MetaContentDetail() {
         </label>
       </div>
       {msg && <p className="mt-3 text-sm text-red-600">{msg}</p>}
+
+      <div className="mt-6 rounded border bg-neutral-50 p-3">
+        <div className="mb-2 font-medium">Pubblicazione su Meta</div>
+        <p className="mb-2 text-sm text-neutral-600">
+          Stato: <span className="font-mono">{c.publicationStatus ?? "NON_INVIATO"}</span>
+          {c.facebookPostId && <> · FB: <span className="font-mono">{c.facebookPostId}</span></>}
+          {c.instagramPostId && <> · IG: <span className="font-mono">{c.instagramPostId}</span></>}
+        </p>
+        {c.publicationError && <p className="mb-2 text-sm text-red-600">Errore: {c.publicationError}</p>}
+        {(c.status === "APPROVATO" || c.status === "PROGRAMMATO") && c.publicationStatus !== "PUBBLICATO" ? (
+          <MetaPublishButton contentId={c.id} onPublished={load} />
+        ) : c.publicationStatus === "PUBBLICATO" ? (
+          <p className="text-sm text-emerald-700">Già pubblicato.</p>
+        ) : (
+          <p className="text-sm text-neutral-500">Porta il contenuto in stato APPROVATO o PROGRAMMATO per pubblicare.</p>
+        )}
+      </div>
+
       <p className="mt-4 text-xs text-neutral-400">Testo generato da {c.modello}</p>
     </div>
   );
