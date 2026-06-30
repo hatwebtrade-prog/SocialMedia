@@ -4,38 +4,34 @@ import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import { IdeaFilters, type Filters } from "./idea-filters";
 import { StatusBadge } from "./status-badge";
-import { DESTINAZIONI } from "@/lib/brain/enums";
 import { ChannelIcons } from "@/components/channel-icon";
 import { matchesText } from "@/lib/brain/search";
+import { DESTINAZIONI } from "@/lib/brain/enums";
+import { KanbanBoard } from "@/components/brain/kanban-board";
+import type { KanbanIdea } from "@/components/brain/idea-card";
+import type { IdeaStatus } from "@/lib/brain/kanban";
+import { Button, SegmentedControl, Skeleton, EmptyState, useToast } from "@/components/ui";
 
-interface Idea {
-  id: string;
-  titolo: string;
-  category: string;
-  seoScore: number;
-  priority: number;
-  status: string;
-  keyword?: string | null;
-  volumeRicerca?: number | null;
-  difficolta?: number | null;
-  destinazioni?: string[];
-  product?: { nome: string } | null;
-  source?: { key: string } | null;
-}
+type View = "kanban" | "table";
 
-const SOURCE_LABEL: Record<string, string> = { "ai-brainstorming": "AI", manuale: "Manuale", seozoom: "SEOZoom" };
-
-export function IdeaTable() {
-  const [ideas, setIdeas] = useState<Idea[]>([]);
+export function IdeaWorkspace() {
+  const { show } = useToast();
+  const [ideas, setIdeas] = useState<KanbanIdea[]>([]);
   const [filters, setFilters] = useState<Filters>({ q: "", status: "", category: "", platform: "", source: "", destinazione: "", priorita: "" });
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [destSel, setDestSel] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(false);
   const [debouncedQ, setDebouncedQ] = useState("");
+  const [view, setView] = useState<View>("kanban");
+  const [showDiscarded, setShowDiscarded] = useState(false);
+
   useEffect(() => {
-    const t = setTimeout(() => setDebouncedQ(filters.q), 300);
-    return () => clearTimeout(t);
-  }, [filters.q]);
+    const saved = typeof window !== "undefined" ? window.localStorage.getItem("brain.view") : null;
+    if (saved === "table" || saved === "kanban") setView(saved);
+  }, []);
+  const changeView = (v: View) => { setView(v); window.localStorage.setItem("brain.view", v); };
+
+  useEffect(() => { const t = setTimeout(() => setDebouncedQ(filters.q), 300); return () => clearTimeout(t); }, [filters.q]);
 
   const { status, category, platform, source, destinazione, priorita } = filters;
   const load = useCallback(async () => {
@@ -52,31 +48,31 @@ export function IdeaTable() {
       const data = await res.json();
       setIdeas(Array.isArray(data) ? data : []);
       setSelected(new Set());
-    } catch {
-      setIdeas([]);
-    } finally {
-      setLoading(false);
-    }
+    } catch { setIdeas([]); } finally { setLoading(false); }
   }, [status, category, platform, source, destinazione, priorita]);
-
   useEffect(() => { load(); }, [load]);
 
-  const toggle = (id: string) => setSelected((prev) => {
-    const next = new Set(prev); if (next.has(id)) next.delete(id); else next.add(id); return next;
-  });
-  const toggleDest = (d: string) => setDestSel((prev) => {
-    const next = new Set(prev); if (next.has(d)) next.delete(d); else next.add(d); return next;
-  });
+  const toggle = (id: string) => setSelected((p) => { const n = new Set(p); n.has(id) ? n.delete(id) : n.add(id); return n; });
+  const toggleDest = (d: string) => setDestSel((p) => { const n = new Set(p); n.has(d) ? n.delete(d) : n.add(d); return n; });
 
-  const bulkStatus = async (status: string) => {
+  const persist = useCallback(async (id: string, s: IdeaStatus): Promise<boolean> => {
+    try {
+      const res = await fetch(`/api/ideas/${id}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ status: s }) });
+      return res.ok;
+    } catch { return false; }
+  }, []);
+
+  const bulkStatus = async (s: string) => {
     if (selected.size === 0) return;
-    await fetch("/api/ideas/bulk-status", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ ids: [...selected], status }) });
+    await fetch("/api/ideas/bulk-status", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ ids: [...selected], status: s }) });
+    show("Stato aggiornato.");
     await load();
   };
   const bulkDestinazioni = async () => {
     if (selected.size === 0 || destSel.size === 0) return;
     await fetch("/api/ideas/bulk-destinazioni", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ ids: [...selected], destinazioni: [...destSel] }) });
     setDestSel(new Set());
+    show("Canali assegnati.");
     await load();
   };
 
@@ -84,56 +80,57 @@ export function IdeaTable() {
 
   return (
     <div>
-      <IdeaFilters filters={filters} onChange={setFilters} />
-      <div className="mb-3 flex flex-wrap items-center gap-2 text-sm">
-        <button onClick={() => bulkStatus("APPROVATA")} className="rounded bg-green-600 px-3 py-1 text-white disabled:opacity-40" disabled={selected.size === 0}>Approva ({selected.size})</button>
-        <button onClick={() => bulkStatus("SCARTATA")} className="rounded bg-red-600 px-3 py-1 text-white disabled:opacity-40" disabled={selected.size === 0}>Scarta</button>
-        <button onClick={() => bulkStatus("INTERESSANTE")} className="rounded bg-amber-500 px-3 py-1 text-white disabled:opacity-40" disabled={selected.size === 0}>Interessante</button>
-        <span className="ml-3 text-neutral-400">|</span>
-        <span className="text-neutral-500">Assegna a canali:</span>
-        {DESTINAZIONI.map((d) => (
-          <label key={d} className="flex items-center gap-1">
-            <input type="checkbox" checked={destSel.has(d)} onChange={() => toggleDest(d)} />{d}
-          </label>
-        ))}
-        <button onClick={bulkDestinazioni} className="rounded bg-blue-600 px-3 py-1 text-white disabled:opacity-40" disabled={selected.size === 0 || destSel.size === 0}>Assegna ({selected.size})</button>
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+        <IdeaFilters filters={filters} onChange={setFilters} />
+        <div className="flex items-center gap-2">
+          {view === "kanban" && (
+            <label className="flex items-center gap-1.5 text-xs text-ink-soft">
+              <input type="checkbox" checked={showDiscarded} onChange={(e) => setShowDiscarded(e.target.checked)} /> Mostra scartate
+            </label>
+          )}
+          <SegmentedControl<View> options={[{ value: "kanban", label: "Kanban" }, { value: "table", label: "Tabella" }]} value={view} onChange={changeView} />
+        </div>
       </div>
+
+      {selected.size > 0 && (
+        <div className="mb-3 flex flex-wrap items-center gap-2 rounded-xl bg-sand-50 p-2 text-sm">
+          <Button size="sm" onClick={() => bulkStatus("APPROVATA")}>Approva ({selected.size})</Button>
+          <Button size="sm" variant="danger" onClick={() => bulkStatus("SCARTATA")}>Scarta</Button>
+          <Button size="sm" variant="soft" onClick={() => bulkStatus("INTERESSANTE")}>Interessante</Button>
+          <span className="ml-2 text-ink-soft">Assegna a canali:</span>
+          {DESTINAZIONI.map((d) => (
+            <label key={d} className="flex items-center gap-1"><input type="checkbox" checked={destSel.has(d)} onChange={() => toggleDest(d)} />{d}</label>
+          ))}
+          <Button size="sm" variant="soft" onClick={bulkDestinazioni} disabled={destSel.size === 0}>Assegna</Button>
+        </div>
+      )}
+
       {loading ? (
-        <div className="space-y-2">{Array.from({ length: 5 }).map((_, i) => <div key={i} className="h-8 animate-pulse rounded bg-neutral-100" />)}</div>
+        <div className="flex gap-4">{Array.from({ length: 4 }).map((_, i) => <Skeleton key={i} className="h-64 w-72" />)}</div>
+      ) : visible.length === 0 ? (
+        <EmptyState title="Nessuna idea" hint="Genera nuove idee dal Brain." action={<Link href="/genera"><Button>Genera idee</Button></Link>} />
+      ) : view === "kanban" ? (
+        <KanbanBoard ideas={visible} setIdeas={setIdeas} selected={selected} onToggleSelect={toggle} showDiscarded={showDiscarded} persist={persist} />
       ) : (
         <table className="w-full border-collapse text-sm">
           <thead>
-            <tr className="border-b text-left text-neutral-500">
-              <th className="p-2"></th>
-              <th className="p-2">Titolo</th>
-              <th className="p-2">Categoria</th>
-              <th className="p-2">Fonte</th>
-              <th className="p-2">Destinazioni</th>
-              <th className="p-2">Keyword</th>
-              <th className="p-2">Vol.</th>
-              <th className="p-2">Diff.</th>
-              <th className="p-2">SEO</th>
-              <th className="p-2">Prio</th>
-              <th className="p-2">Stato</th>
+            <tr className="border-b border-sand-200 text-left text-ink-soft">
+              <th className="p-2"></th><th className="p-2">Titolo</th><th className="p-2">Categoria</th><th className="p-2">Destinazioni</th><th className="p-2">Keyword</th><th className="p-2">SEO</th><th className="p-2">Prio</th><th className="p-2">Stato</th>
             </tr>
           </thead>
           <tbody>
             {visible.map((i) => (
-              <tr key={i.id} className="border-b hover:bg-neutral-50">
+              <tr key={i.id} className="border-b border-sand-100 hover:bg-sand-50">
                 <td className="p-2"><input type="checkbox" checked={selected.has(i.id)} onChange={() => toggle(i.id)} /></td>
-                <td className="p-2"><Link href={`/ideas/${i.id}`} className="text-blue-600 hover:underline">{i.titolo}</Link></td>
+                <td className="p-2"><Link href={`/ideas/${i.id}`} className="text-sage-700 hover:underline">{i.titolo}</Link></td>
                 <td className="p-2">{i.category}</td>
-                <td className="p-2">{i.source ? (SOURCE_LABEL[i.source.key] ?? i.source.key) : "—"}</td>
                 <td className="p-2"><ChannelIcons channels={i.destinazioni ?? []} /></td>
                 <td className="p-2">{i.keyword ?? "—"}</td>
-                <td className="p-2">{i.volumeRicerca ?? "—"}</td>
-                <td className="p-2">{i.difficolta ?? "—"}</td>
                 <td className="p-2">{i.seoScore}</td>
                 <td className="p-2">{i.priority}</td>
                 <td className="p-2"><StatusBadge status={i.status} /></td>
               </tr>
             ))}
-            {visible.length === 0 && <tr><td colSpan={11} className="p-4 text-neutral-500">Nessuna idea.</td></tr>}
           </tbody>
         </table>
       )}
