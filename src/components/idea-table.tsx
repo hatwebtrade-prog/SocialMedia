@@ -64,16 +64,26 @@ export function IdeaWorkspace() {
 
   const bulkStatus = async (s: string) => {
     if (selected.size === 0) return;
-    await fetch("/api/ideas/bulk-status", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ ids: [...selected], status: s }) });
-    show("Stato aggiornato.");
-    await load();
+    try {
+      const res = await fetch("/api/ideas/bulk-status", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ ids: [...selected], status: s }) });
+      if (!res.ok) { show("Aggiornamento non riuscito.", "error"); return; }
+      show("Stato aggiornato.");
+      await load();
+    } catch {
+      show("Aggiornamento non riuscito.", "error");
+    }
   };
   const bulkDestinazioni = async () => {
     if (selected.size === 0 || destSel.size === 0) return;
-    await fetch("/api/ideas/bulk-destinazioni", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ ids: [...selected], destinazioni: [...destSel] }) });
-    setDestSel(new Set());
-    show("Canali assegnati.");
-    await load();
+    try {
+      const res = await fetch("/api/ideas/bulk-destinazioni", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ ids: [...selected], destinazioni: [...destSel] }) });
+      if (!res.ok) { show("Assegnazione non riuscita.", "error"); return; }
+      setDestSel(new Set());
+      show("Canali assegnati.");
+      await load();
+    } catch {
+      show("Assegnazione non riuscita.", "error");
+    }
   };
 
   const visible = ideas.filter((i) => matchesText({ titolo: i.titolo, keyword: i.keyword }, debouncedQ));
