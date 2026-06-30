@@ -27,3 +27,7 @@ export const bulkDestinazioniSchema = z.object({
   ids: z.array(z.string()).min(1),
   destinazioni: z.array(z.enum(DESTINAZIONI)),
 });
+
+export const bulkIdsSchema = z.object({
+  ids: z.array(z.string().min(1)).min(1),
+});

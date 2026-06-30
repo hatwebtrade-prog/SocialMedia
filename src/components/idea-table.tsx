@@ -62,6 +62,25 @@ export function IdeaWorkspace() {
     } catch { return false; }
   }, []);
 
+  const trashOne = useCallback(async (id: string) => {
+    try {
+      const res = await fetch("/api/ideas/bulk-trash", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ ids: [id] }) });
+      if (!res.ok) { show("Spostamento nel cestino non riuscito.", "error"); return; }
+      show("Spostata nel cestino.");
+      await load();
+    } catch { show("Spostamento nel cestino non riuscito.", "error"); }
+  }, [load, show]);
+
+  const bulkTrash = async () => {
+    if (selected.size === 0) return;
+    try {
+      const res = await fetch("/api/ideas/bulk-trash", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ ids: [...selected] }) });
+      if (!res.ok) { show("Spostamento nel cestino non riuscito.", "error"); return; }
+      show("Spostate nel cestino.");
+      await load();
+    } catch { show("Spostamento nel cestino non riuscito.", "error"); }
+  };
+
   const bulkStatus = async (s: string) => {
     if (selected.size === 0) return;
     try {
@@ -107,6 +126,7 @@ export function IdeaWorkspace() {
           <Button size="sm" onClick={() => bulkStatus("APPROVATA")}>Approva ({selected.size})</Button>
           <Button size="sm" variant="danger" onClick={() => bulkStatus("SCARTATA")}>Scarta</Button>
           <Button size="sm" variant="soft" onClick={() => bulkStatus("INTERESSANTE")}>Interessante</Button>
+          <Button size="sm" variant="ghost" onClick={bulkTrash}>🗑 Cestina ({selected.size})</Button>
           <span className="ml-2 text-ink-soft">Assegna a canali:</span>
           {DESTINAZIONI.map((d) => (
             <label key={d} className="flex items-center gap-1"><input type="checkbox" checked={destSel.has(d)} onChange={() => toggleDest(d)} />{d}</label>
@@ -120,12 +140,12 @@ export function IdeaWorkspace() {
       ) : visible.length === 0 ? (
         <EmptyState title="Nessuna idea" hint="Genera nuove idee dal Brain." action={<Link href="/genera"><Button>Genera idee</Button></Link>} />
       ) : view === "kanban" ? (
-        <KanbanBoard ideas={visible} setIdeas={setIdeas} selected={selected} onToggleSelect={toggle} showDiscarded={showDiscarded} persist={persist} />
+        <KanbanBoard ideas={visible} setIdeas={setIdeas} selected={selected} onToggleSelect={toggle} showDiscarded={showDiscarded} persist={persist} onTrash={trashOne} />
       ) : (
         <table className="w-full border-collapse text-sm">
           <thead>
             <tr className="border-b border-sand-200 text-left text-ink-soft">
-              <th className="p-2"></th><th className="p-2">Titolo</th><th className="p-2">Categoria</th><th className="p-2">Destinazioni</th><th className="p-2">Keyword</th><th className="p-2">SEO</th><th className="p-2">Prio</th><th className="p-2">Stato</th>
+              <th className="p-2"></th><th className="p-2">Titolo</th><th className="p-2">Categoria</th><th className="p-2">Destinazioni</th><th className="p-2">Keyword</th><th className="p-2">SEO</th><th className="p-2">Prio</th><th className="p-2">Stato</th><th className="p-2"></th>
             </tr>
           </thead>
           <tbody>
@@ -139,6 +159,7 @@ export function IdeaWorkspace() {
                 <td className="p-2">{i.seoScore}</td>
                 <td className="p-2">{i.priority}</td>
                 <td className="p-2"><StatusBadge status={i.status} /></td>
+                <td className="p-2"><button onClick={() => trashOne(i.id)} aria-label="Sposta nel cestino" title="Sposta nel cestino" className="text-ink-soft hover:text-red-600">🗑</button></td>
               </tr>
             ))}
           </tbody>
