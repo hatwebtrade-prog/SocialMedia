@@ -8,13 +8,14 @@ import { useToast } from "@/components/ui";
 
 const VALID = new Set<string>([...KANBAN_COLUMNS.map((c) => c.status), DISCARDED_COLUMN.status]);
 
-export function KanbanBoard({ ideas, setIdeas, selected, onToggleSelect, showDiscarded, persist }: {
+export function KanbanBoard({ ideas, setIdeas, selected, onToggleSelect, showDiscarded, persist, onTrash }: {
   ideas: KanbanIdea[];
   setIdeas: (updater: (prev: KanbanIdea[]) => KanbanIdea[]) => void;
   selected: Set<string>;
   onToggleSelect: (id: string) => void;
   showDiscarded: boolean;
   persist: (id: string, status: IdeaStatus) => Promise<boolean>;
+  onTrash?: (id: string) => void;
 }) {
   const { show } = useToast();
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }));
@@ -40,7 +41,7 @@ export function KanbanBoard({ ideas, setIdeas, selected, onToggleSelect, showDis
     <DndContext sensors={sensors} onDragEnd={onDragEnd}>
       <div className="flex gap-4 overflow-x-auto pb-2">
         {columns.map((col) => (
-          <KanbanColumn key={col.status} column={col} ideas={grouped[col.status] ?? []} selected={selected} onToggleSelect={onToggleSelect} />
+          <KanbanColumn key={col.status} column={col} ideas={grouped[col.status] ?? []} selected={selected} onToggleSelect={onToggleSelect} onTrash={onTrash} />
         ))}
       </div>
     </DndContext>

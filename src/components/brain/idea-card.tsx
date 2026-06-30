@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { LuTrash2 } from "react-icons/lu";
 import { Card, Pill } from "@/components/ui";
 import { ChannelIcons } from "@/components/channel-icon";
 import { formatStat, formatVolume, type IdeaStatus } from "@/lib/brain/kanban";
@@ -22,18 +23,31 @@ export interface KanbanIdea {
 
 const SOURCE_LABEL: Record<string, string> = { "ai-brainstorming": "AI", manuale: "Manuale", seozoom: "SEOZoom" };
 
-export function IdeaCard({ idea, selected, onToggleSelect }: { idea: KanbanIdea; selected: boolean; onToggleSelect: (id: string) => void }) {
+export function IdeaCard({ idea, selected, onToggleSelect, onTrash }: { idea: KanbanIdea; selected: boolean; onToggleSelect: (id: string) => void; onTrash?: (id: string) => void }) {
   return (
     <Card interactive className={`p-3 ${selected ? "ring-2 ring-sage-400" : ""}`}>
       <div className="mb-2 flex items-center justify-between gap-2">
         <Pill tone="sage">P{idea.priority}</Pill>
-        <input
-          type="checkbox"
-          checked={selected}
-          onChange={() => onToggleSelect(idea.id)}
-          onPointerDown={(e) => e.stopPropagation()}
-          aria-label="Seleziona idea"
-        />
+        <div className="flex items-center gap-1.5">
+          {onTrash && (
+            <button
+              onClick={() => onTrash(idea.id)}
+              onPointerDown={(e) => e.stopPropagation()}
+              aria-label="Sposta nel cestino"
+              title="Sposta nel cestino"
+              className="text-ink-soft transition hover:text-red-600"
+            >
+              <LuTrash2 size={15} />
+            </button>
+          )}
+          <input
+            type="checkbox"
+            checked={selected}
+            onChange={() => onToggleSelect(idea.id)}
+            onPointerDown={(e) => e.stopPropagation()}
+            aria-label="Seleziona idea"
+          />
+        </div>
       </div>
       <Link href={`/ideas/${idea.id}`} className="block font-display text-sm font-semibold leading-snug text-ink hover:text-sage-700 line-clamp-2">
         {idea.titolo}
