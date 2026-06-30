@@ -35,4 +35,7 @@ export const imageInputSchema = z.object({
   provider: z.enum(IMAGE_PROVIDERS).optional(),
   brief: briefSchema,
   styleId: z.string().optional(),
+  // The current creative-idea text sent with the request: used directly as the prompt,
+  // avoiding a race with the onBlur save (otherwise the server would read the stale DB value).
+  ideaCreativa: z.string().optional(),
 });

@@ -4,31 +4,30 @@ export interface ImagePromptArgs {
   hasMockup?: boolean;
 }
 
-/** Turns a slide's editorial copy into a short, non-rendered theme phrase (strips "Slide N:" etc.). */
-function temaSlide(slideText?: string | null): string {
+/** Strips a leading "Slide N:" marker from slide copy, keeping the content. */
+function cleanSlide(slideText?: string | null): string {
   if (!slideText) return "";
-  const cleaned = slideText
+  return slideText
     .replace(/slide\s*\d+\s*[:.\-–]?\s*/gi, "")
     .replace(/\s+/g, " ")
     .trim();
-  return cleaned.split(" ").slice(0, 14).join(" ");
 }
 
-/** Builds a concise, strongly photorealistic prompt for a SINGLE photo. The creative idea is the
- *  scene; the slide copy is passed only as an unrendered theme. Forbids text/collage/slide layouts
- *  (which low-instruction models like Higgsfield Soul otherwise produce) and keeps the real product. */
+/** Builds the GPT image prompt from the user's creative idea used (almost) verbatim — the idea
+ *  IS the prompt — plus a short high-quality photographic note. Text/titles are intentionally
+ *  ALLOWED (users often want a cover/title in the image). When a mockup is selected, product-fidelity
+ *  guidance keeps the packaging identical. No hard constraints: the user controls the scene. */
 export function buildImagePrompt({ ideaCreativa, slideText, hasMockup }: ImagePromptArgs): string {
-  const tema = temaSlide(slideText);
-  const scene = tema ? `${ideaCreativa}. Tema da illustrare con la scena: ${tema}.` : `${ideaCreativa}.`;
+  const tema = cleanSlide(slideText);
   const product = hasMockup
-    ? "Includi il prodotto reale mantenendolo IDENTICO al packaging di riferimento (stessa etichetta, forma, colori e testo, senza alterarlo) e inseriscilo in modo naturale e credibile nella scena, ad esempio tenuto in mano, con luce, scala e ombre coerenti."
+    ? "Mantieni il prodotto IDENTICO al packaging di riferimento (stessa etichetta, forma, colori e testo) e inseriscilo in modo naturale e credibile nella scena."
     : "";
   return [
-    scene,
-    "Una SINGOLA fotografia iperrealistica, indistinguibile da uno scatto reale: fotocamera full-frame, obiettivo 50mm, luce naturale morbida, messa a fuoco nitida, pelle e mani realistiche con dettagli naturali.",
+    ideaCreativa.trim(),
+    tema,
+    "Foto professionale di alta qualità, fotorealistica, illuminazione naturale curata, dettagli nitidi.",
     product,
-    "VIETATO nell'immagine: qualsiasi testo, lettera, scritta, didascalia, logo o watermark; collage, griglie, riquadri multipli o slide affiancate; aspetto 3D, render, cartoon, CGI o plastica.",
   ]
-    .filter(Boolean)
+    .filter((s) => s && s.trim())
     .join(" ");
 }

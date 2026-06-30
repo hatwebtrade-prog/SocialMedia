@@ -11,6 +11,9 @@ export interface ImageGenInput {
   provider?: ImageProvider;
   brief?: ImageBrief;
   styleId?: string;
+  /** Current creative-idea text from the client; when present it IS the prompt (overrides the
+   *  persisted payload, avoiding a race with the onBlur save). */
+  ideaCreativa?: string;
 }
 
 export interface ImageDeps {
@@ -33,7 +36,9 @@ export async function generateImageAsset(
   deps: ImageDeps,
 ): Promise<ImageGenResult> {
   try {
-    const { ideaCreativa, slideText } = await deps.loadContent(input.contentId, input.slideIndex);
+    const loaded = await deps.loadContent(input.contentId, input.slideIndex);
+    const ideaCreativa = input.ideaCreativa?.trim() ? input.ideaCreativa.trim() : loaded.ideaCreativa;
+    const slideText = loaded.slideText;
     const mockup = input.useMockup && input.productId ? await deps.loadMockup(input.productId) : null;
     const fallback = slideText ? `${ideaCreativa}. ${slideText}` : ideaCreativa;
     const brandProfile = deps.loadBrandVisual ? await deps.loadBrandVisual() : null;

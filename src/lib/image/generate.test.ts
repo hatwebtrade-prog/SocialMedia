@@ -47,4 +47,12 @@ describe("generateImageAsset", () => {
     await generateImageAsset({ contentId: "c1", slideIndex: null, provider: "GEMINI" }, deps as any);
     expect((deps.callOpenAI as any).mock.calls[0][2]).toBe("GEMINI");
   });
+
+  it("uses the client-provided ideaCreativa as the prompt, overriding the persisted value", async () => {
+    const deps = makeDeps(); // loadContent returns ideaCreativa "concept"
+    await generateImageAsset({ contentId: "c1", slideIndex: null, ideaCreativa: "PROMPT MARKER" }, deps as any);
+    const prompt = (deps.callOpenAI as any).mock.calls[0][0] as string;
+    expect(prompt).toContain("PROMPT MARKER");
+    expect(prompt).not.toContain("concept");
+  });
 });

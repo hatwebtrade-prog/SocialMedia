@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams } from "next/navigation";
 import { CONTENT_STATUSES } from "@/lib/meta/enums";
 import { ImageBriefForm, type Brief } from "@/components/image-brief";
@@ -33,6 +33,7 @@ export default function MetaContentDetail() {
   const [provider, setProvider] = useState("GPT");
   const [brief, setBrief] = useState<Brief>({});
   const [perImage, setPerImage] = useState<Record<string, ProductMockupValue>>({});
+  const ideaRef = useRef<HTMLTextAreaElement>(null);
   useEffect(() => { fetch("/api/products").then((r) => r.json()).then((d) => setProducts(Array.isArray(d) ? d : [])).catch(() => setProducts([])); }, []);
 
   const keyFor = (slideIndex: number | null) => (slideIndex === null ? "post" : String(slideIndex));
@@ -55,7 +56,7 @@ export default function MetaContentDetail() {
     const v = valueFor(slideIndex);
     const res = await fetch(`/api/meta/contents/${id}/image`, {
       method: "POST", headers: { "content-type": "application/json" },
-      body: JSON.stringify({ slideIndex, productId: v.productId || undefined, useMockup: v.useMockup && !!v.productId, provider, brief, styleId: brief.stile }),
+      body: JSON.stringify({ slideIndex, productId: v.productId || undefined, useMockup: v.useMockup && !!v.productId, provider, brief, styleId: brief.stile, ideaCreativa: ideaRef.current?.value ?? undefined }),
     });
     const json = await res.json();
     setBusyImg(null);
@@ -88,8 +89,8 @@ export default function MetaContentDetail() {
       <label className="mb-2 block text-sm">Caption</label>
       <textarea className="mb-3 w-full rounded border p-2" rows={3} defaultValue={p.caption ?? ""} onBlur={(e) => patch({ payload: { ...p, caption: e.target.value } })} />
 
-      <label className="mb-2 block text-sm">Idea creativa (concept immagine)</label>
-      <textarea className="mb-3 w-full rounded border p-2" rows={2} defaultValue={p.ideaCreativa ?? ""} onBlur={(e) => patch({ payload: { ...p, ideaCreativa: e.target.value } })} />
+      <label className="mb-2 block text-sm">Idea creativa = prompt immagine (testo/titoli inclusi nell&apos;immagine)</label>
+      <textarea ref={ideaRef} className="mb-3 w-full rounded border p-2" rows={2} defaultValue={p.ideaCreativa ?? ""} onBlur={(e) => patch({ payload: { ...p, ideaCreativa: e.target.value } })} />
 
       <label className="mb-2 block text-sm">CTA</label>
       <input className="mb-3 w-full rounded border p-2" defaultValue={p.cta ?? ""} onBlur={(e) => patch({ payload: { ...p, cta: e.target.value } })} />
