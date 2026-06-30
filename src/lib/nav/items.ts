@@ -8,9 +8,9 @@ export const navItems: NavArea[] = [
     children: [
       { label: "Tutte le idee", href: "/dashboard" },
       { label: "Genera idee", href: "/genera" },
+      { label: "Trend & SEO", href: "/trend-seo" },
     ],
   },
-  { label: "Trend & SEO", href: "/trend-seo", icon: "trend" },
   { label: "Meta", href: "/meta", icon: "meta" },
   { label: "Blog", href: "/blog", icon: "blog" },
   { label: "TikTok", href: "/tiktok", icon: "tiktok" },
