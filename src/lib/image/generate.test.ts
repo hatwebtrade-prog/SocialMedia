@@ -47,4 +47,18 @@ describe("generateImageAsset", () => {
     await generateImageAsset({ contentId: "c1", slideIndex: null, provider: "GEMINI" }, deps as any);
     expect((deps.callOpenAI as any).mock.calls[0][2]).toBe("GEMINI");
   });
+
+  it("passes openaiSize=1024x1536 to callOpenAI when formato is verticale", async () => {
+    const deps = makeDeps();
+    await generateImageAsset({ contentId: "c1", slideIndex: null, brief: { formato: "verticale" } }, deps as any);
+    const opts = (deps.callOpenAI as any).mock.calls[0][3];
+    expect(opts.openaiSize).toBe("1024x1536");
+  });
+
+  it("passes openaiSize=1024x1024 to callOpenAI when no brief is provided", async () => {
+    const deps = makeDeps();
+    await generateImageAsset({ contentId: "c1", slideIndex: null }, deps as any);
+    const opts = (deps.callOpenAI as any).mock.calls[0][3];
+    expect(opts.openaiSize).toBe("1024x1024");
+  });
 });

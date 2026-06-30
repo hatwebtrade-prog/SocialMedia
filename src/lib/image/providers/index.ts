@@ -5,7 +5,7 @@ import { higgsfieldImage } from "./higgsfield";
 export const IMAGE_PROVIDERS = ["GPT", "GEMINI", "HIGGSFIELD"] as const;
 export type ImageProvider = (typeof IMAGE_PROVIDERS)[number];
 
-export interface ProviderOpts { styleId?: string; soulSize?: string; customReferenceId?: string }
+export interface ProviderOpts { styleId?: string; soulSize?: string; customReferenceId?: string; openaiSize?: "1024x1024" | "1024x1536" | "1536x1024" }
 
 export function isImageProvider(v: string): v is ImageProvider {
   return (IMAGE_PROVIDERS as readonly string[]).includes(v);
@@ -13,8 +13,8 @@ export function isImageProvider(v: string): v is ImageProvider {
 
 export async function generateWithProvider(provider: ImageProvider, prompt: string, mockup?: Buffer, opts?: ProviderOpts): Promise<Buffer> {
   switch (provider) {
-    case "GEMINI": return geminiImage(prompt, mockup);
+    case "GEMINI": return geminiImage(prompt, mockup, opts);
     case "HIGGSFIELD": return higgsfieldImage(prompt, mockup, opts);
-    default: return openaiImage(prompt, mockup);
+    default: return openaiImage(prompt, mockup, opts);
   }
 }

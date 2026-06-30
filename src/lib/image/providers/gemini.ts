@@ -1,8 +1,10 @@
+import type { ProviderOpts } from "./index";
+
 const MODEL = process.env.GEMINI_IMAGE_MODEL ?? "gemini-2.5-flash-image";
 
 interface Part { text?: string; inlineData?: { mimeType: string; data: string } }
 
-export async function geminiImage(prompt: string, mockup?: Buffer): Promise<Buffer> {
+export async function geminiImage(prompt: string, mockup?: Buffer, _opts?: ProviderOpts): Promise<Buffer> {
   const key = process.env.GEMINI_API_KEY;
   if (!key) throw new Error("GEMINI_API_KEY mancante");
   const parts: Part[] = [{ text: prompt }];

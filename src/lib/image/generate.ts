@@ -1,6 +1,6 @@
 import { buildImagePrompt } from "./prompt";
 import { buildImagePromptFromBrief, isBriefEmpty, briefDimensions, type ImageBrief } from "./brief";
-import type { ImageProvider } from "./providers";
+import type { ImageProvider, ProviderOpts } from "./providers";
 import { buildBrandVisualContext } from "@/lib/knowledge/brand-context";
 
 export interface ImageGenInput {
@@ -16,7 +16,7 @@ export interface ImageGenInput {
 export interface ImageDeps {
   loadContent: (contentId: string, slideIndex: number | null) => Promise<{ ideaCreativa: string; slideText: string | null }>;
   loadMockup: (productId: string) => Promise<Buffer | null>;
-  callOpenAI: (prompt: string, mockup?: Buffer, provider?: ImageProvider, opts?: { styleId?: string; soulSize?: string; customReferenceId?: string }) => Promise<Buffer>;
+  callOpenAI: (prompt: string, mockup?: Buffer, provider?: ImageProvider, opts?: ProviderOpts) => Promise<Buffer>;
   persistAsset: (args: { input: ImageGenInput; prompt: string; bytes: Buffer }) => Promise<{ assetId: string }>;
   ensureHiggsfieldRef?: (productId: string) => Promise<string | null>;
   loadBrandVisual?: () => Promise<import("@/lib/knowledge/brand-context").BrandVisualData | null>;
@@ -49,7 +49,8 @@ export async function generateImageAsset(
     if (input.provider === "HIGGSFIELD" && input.useMockup && input.productId && deps.ensureHiggsfieldRef) {
       customReferenceId = (await deps.ensureHiggsfieldRef(input.productId)) ?? undefined;
     }
-    const bytes = await deps.callOpenAI(prompt, mockup ?? undefined, input.provider, { styleId, soulSize, customReferenceId });
+    const openaiSize = briefDimensions(input.brief?.formato).openaiSize;
+    const bytes = await deps.callOpenAI(prompt, mockup ?? undefined, input.provider, { styleId, soulSize, customReferenceId, openaiSize });
     const { assetId } = await deps.persistAsset({ input, prompt, bytes });
     return { status: "DONE", assetId };
   } catch (err) {
