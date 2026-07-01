@@ -69,6 +69,17 @@ export default function BlogDetailPage({ params }: { params: Promise<{ id: strin
     } catch { setPubMsg("Errore di rete."); } finally { setPubBusy(false); }
   };
 
+  const ritira = async () => {
+    if (!window.confirm("Ritirare l'articolo? Verrà eliminato l'articolo live su Shopify e il contenuto tornerà in BOZZA.")) return;
+    setPubBusy(true); setPubMsg(null);
+    try {
+      const res = await fetch(`/api/blog/contents/${id}/retire`, { method: "POST" });
+      const json = await res.json();
+      setPubMsg(res.ok && json.status === "DONE" ? "Articolo ritirato: eliminato da Shopify, tornato in BOZZA." : `Errore: ${json.error ?? "sconosciuto"}`);
+      await load();
+    } catch { setPubMsg("Errore di rete."); } finally { setPubBusy(false); }
+  };
+
   const genImage = async () => {
     setImgBusy(true); setImgMsg(null);
     try {
@@ -117,6 +128,11 @@ export default function BlogDetailPage({ params }: { params: Promise<{ id: strin
         <StatusBadge status={c.publicationStatus ?? "NON_INVIATO"} />
         {c.shopifyArticleUrl && (
           <a href={c.shopifyArticleUrl} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">apri su Shopify</a>
+        )}
+        {c.publicationStatus === "PUBBLICATO" && (
+          <button onClick={ritira} disabled={pubBusy} className="rounded border border-red-300 px-2 py-0.5 text-red-600 hover:bg-red-50 disabled:opacity-40">
+            {pubBusy ? "Ritiro…" : "Ritira dalla pubblicazione"}
+          </button>
         )}
       </div>
       {c.status === "APPROVATO" && (
