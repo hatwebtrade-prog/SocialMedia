@@ -38,4 +38,6 @@ export const imageInputSchema = z.object({
   // The current creative-idea text sent with the request: used directly as the prompt,
   // avoiding a race with the onBlur save (otherwise the server would read the stale DB value).
   ideaCreativa: z.string().optional(),
+  archetype: z.enum(["UGC", "ADV", "PRODUCT_HERO"]).optional(),
+  headline: z.string().optional(),
 });
