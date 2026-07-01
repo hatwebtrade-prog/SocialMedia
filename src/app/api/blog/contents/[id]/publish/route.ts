@@ -1,9 +1,12 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { z } from "zod";
+import sharp from "sharp";
 import { publishBlogContent, type BlogPublishDeps } from "@/lib/blog/publish";
 import { publishArticle } from "@/lib/shopify/publish";
 import { readAssetBase64 } from "@/lib/image/store";
+import { assembleArticleHtml } from "@/lib/blog/article-html";
+import type { ProductCards } from "@/lib/blog/product-cards";
 import { getDepsFactory } from "./deps-registry";
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -19,10 +22,25 @@ function buildDeps(): BlogPublishDeps {
     loadContent: async (contentId) => {
       const c = await prisma.generatedContent.findUnique({ where: { id: contentId }, include: { assets: true } });
       if (!c || c.canale !== "BLOG") return null;
-      const p = (c.payload ?? {}) as { titoloSeo?: string; corpoHtml?: string; jsonLd?: string };
+      const p = (c.payload ?? {}) as {
+        titoloSeo?: string; corpoHtml?: string; jsonLd?: string;
+        puntiChiave?: string[]; faq?: { domanda: string; risposta: string }[]; cta?: string;
+        productCards?: ProductCards;
+      };
       const asset = c.assets[0];
-      const imageBase64 = asset?.path ? readAssetBase64(asset.path) ?? undefined : undefined;
-      return { titoloSeo: p.titoloSeo ?? "Articolo", corpoHtml: p.corpoHtml ?? "", jsonLd: p.jsonLd, imageBase64 };
+      let headerSrc: string | null = null;
+      if (asset?.path) {
+        const b64 = readAssetBase64(asset.path);
+        if (b64) {
+          const slim = await sharp(Buffer.from(b64, "base64"))
+            .resize(1200, 300, { fit: "cover" })
+            .jpeg({ quality: 78 })
+            .toBuffer();
+          headerSrc = `data:image/jpeg;base64,${slim.toString("base64")}`;
+        }
+      }
+      const corpoHtml = assembleArticleHtml(p, { headerSrc, cards: p.productCards });
+      return { titoloSeo: p.titoloSeo ?? "Articolo", corpoHtml, jsonLd: p.jsonLd, imageBase64: undefined };
     },
     publish: async ({ blogId, blogHandle, title, bodyHtml, imageBase64, published }) => {
       const a = await publishArticle({ blogId, title, bodyHtml, imageBase64, published });
