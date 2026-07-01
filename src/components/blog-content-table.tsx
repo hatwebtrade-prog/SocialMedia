@@ -17,6 +17,7 @@ export function BlogContentTable() {
   const [items, setItems] = useState<Content[]>([]);
   const [status, setStatus] = useState("");
   const [loading, setLoading] = useState(false);
+  const [msg, setMsg] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -33,10 +34,22 @@ export function BlogContentTable() {
     }
   }, [status]);
 
+  const cestina = async (id: string) => {
+    if (!window.confirm("Cestinare l'articolo? Se è pubblicato, verrà eliminato anche l'articolo live su Shopify.")) return;
+    setMsg(null);
+    try {
+      const res = await fetch(`/api/blog/contents/${id}/trash`, { method: "PATCH" });
+      const json = await res.json();
+      if (!res.ok || json.status === "ERROR") { setMsg(`Errore: ${json.error ?? "sconosciuto"}`); return; }
+      await load();
+    } catch { setMsg("Errore di rete."); }
+  };
+
   useEffect(() => { load(); }, [load]);
 
   return (
     <div>
+      {msg && <p className="mb-2 text-sm text-red-600">{msg}</p>}
       <div className="mb-4 flex gap-3 text-sm">
         <select value={status} onChange={(e) => setStatus(e.target.value)} className="rounded border p-1">
           <option value="">Tutti gli stati</option>
@@ -52,6 +65,7 @@ export function BlogContentTable() {
               <th className="p-2">Keyword</th>
               <th className="p-2">Stato</th>
               <th className="p-2">Data prevista</th>
+              <th className="p-2"></th>
             </tr>
           </thead>
           <tbody>
@@ -62,9 +76,10 @@ export function BlogContentTable() {
                 <td className="p-2">{c.payload?.keywordPrincipale ?? "—"}</td>
                 <td className="p-2"><StatusBadge status={c.status} /></td>
                 <td className="p-2">{c.dataPrevista ? new Date(c.dataPrevista).toLocaleDateString("it-IT") : "—"}</td>
+                <td className="p-2"><button onClick={() => cestina(c.id)} aria-label="Cestina" title="Cestina" className="text-neutral-500 hover:text-red-600">🗑</button></td>
               </tr>
             ))}
-            {items.length === 0 && <tr><td colSpan={5} className="p-4 text-neutral-500">Nessun articolo.</td></tr>}
+            {items.length === 0 && <tr><td colSpan={6} className="p-4 text-neutral-500">Nessun articolo.</td></tr>}
           </tbody>
         </table>
       )}
