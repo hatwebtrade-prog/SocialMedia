@@ -1,6 +1,6 @@
 import OpenAI from "openai";
 
-export const IMAGE_MODEL = "gpt-image-1";
+export const IMAGE_MODEL = process.env.OPENAI_IMAGE_MODEL ?? "gpt-image-1";
 
 let client: OpenAI | null = null;
 
