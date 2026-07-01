@@ -12,8 +12,15 @@ interface MetaPayloadShape {
   slides?: Array<{ testo?: string }>;
 }
 
-function sharedImageDeps(): Pick<ImageDeps, "loadMockup" | "callOpenAI" | "persistAsset" | "ensureHiggsfieldRef" | "loadBrandVisual"> {
+function sharedImageDeps(): Pick<ImageDeps, "loadMockup" | "loadProduct" | "callOpenAI" | "persistAsset" | "ensureHiggsfieldRef" | "loadBrandVisual"> {
   return {
+    loadProduct: async (productId) => {
+      return prisma.product.findUnique({
+        where: { id: productId },
+        select: { nome: true, descrizione: true, benefici: true, ingredienti: true, categoria: true },
+      });
+    },
+
     loadMockup: async (productId) => {
       const product = await prisma.product.findUnique({ where: { id: productId }, select: { imagePath: true } });
       if (!product?.imagePath) return null;
