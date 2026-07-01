@@ -20,6 +20,13 @@ describe("scrubCompetitors", () => {
   it("returns empty text unchanged", () => {
     expect(scrubCompetitors("")).toBe("");
   });
+  it("does NOT splice the token sequence inside a larger word", () => {
+    expect(scrubCompetitors("parola unnaturalsystemic qui")).toBe("parola unnaturalsystemic qui");
+  });
+  it("still matches the standalone name and hyphen/space variants", () => {
+    expect(scrubCompetitors("Prova natural-system oggi")).toBe("Prova un noto marchio concorrente oggi");
+    expect(scrubCompetitors("naturalsystem")).toBe("un noto marchio concorrente");
+  });
 });
 
 describe("scrubBlogPayload", () => {

@@ -19,7 +19,7 @@ function escapeRegex(s: string): string {
 /** Tolerant regex for a competitor name: tokens joined by [\s-]* , case-insensitive, global. */
 function competitorRegex(name: string): RegExp {
   const tokens = name.trim().split(/\s+/).filter(Boolean).map(escapeRegex);
-  return new RegExp(tokens.join("[\\s-]*"), "gi");
+  return new RegExp("\\b" + tokens.join("[\\s-]*") + "\\b", "gi");
 }
 
 export function scrubCompetitors(
