@@ -4,6 +4,8 @@ import { useEffect, useState, use } from "react";
 import { StatusBadge } from "@/components/status-badge";
 import { GenerationProgress } from "@/components/generation-progress";
 import { ImageBriefForm, type Brief } from "@/components/image-brief";
+import { assembleArticleHtml } from "@/lib/blog/article-html";
+import type { ProductCards } from "@/lib/blog/product-cards";
 
 interface Asset { id: string; }
 interface Content {
@@ -14,6 +16,7 @@ interface Content {
     faq?: { domanda: string; risposta: string }[];
     prodotti?: { handle: string; titolo: string; url: string }[];
     jsonLd?: string;
+    productCards?: ProductCards;
   };
   assets: Asset[];
   publicationStatus?: string;
@@ -190,7 +193,7 @@ export default function BlogDetailPage({ params }: { params: Promise<{ id: strin
           <ul className="ml-4 list-disc">{p.puntiChiave.map((k, i) => <li key={i}>{k}</li>)}</ul>
         </div>
       ) : null}
-      <article className="prose mb-4 max-w-none" dangerouslySetInnerHTML={{ __html: p.corpoHtml ?? "" }} />
+      <div className="mb-4" dangerouslySetInnerHTML={{ __html: assembleArticleHtml(p, { headerSrc: c.assets?.[0] ? `/api/assets/${c.assets[0].id}` : null, cards: p.productCards }) }} />
       {p.cta && <p className="mb-4 font-medium">{p.cta}</p>}
       {p.prodotti?.length ? (
         <div className="mb-4 text-sm">
