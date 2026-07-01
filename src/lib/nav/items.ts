@@ -10,6 +10,7 @@ export const navItems: NavArea[] = [
       { label: "Genera idee", href: "/genera" },
       { label: "Trend & SEO", href: "/trend-seo" },
       { label: "Cestino", href: "/cestino" },
+      { label: "Archivio", href: "/archivio" },
     ],
   },
   { label: "Meta", href: "/meta", icon: "meta" },

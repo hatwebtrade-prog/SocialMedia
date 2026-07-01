@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
-  KANBAN_COLUMNS, DISCARDED_COLUMN, groupIdeasByStatus, applyMove, formatStat, formatVolume,
+  KANBAN_COLUMNS, DISCARDED_COLUMN, groupIdeasByStatus, applyMove, formatStat, formatVolume, approvedIds,
 } from "@/lib/brain/kanban";
 
 describe("kanban columns", () => {
@@ -47,5 +47,20 @@ describe("formatStat / formatVolume", () => {
     expect(formatVolume(1900)).toBe("1.9k");
     expect(formatVolume(12000)).toBe("12k");
     expect(formatVolume(null)).toBe("—");
+  });
+});
+
+describe("approvedIds", () => {
+  const ideas = [
+    { id: "a", status: "NUOVA" },
+    { id: "b", status: "APPROVATA" },
+    { id: "c", status: "APPROVATA" },
+    { id: "d", status: "SCARTATA" },
+  ];
+  it("returns only the ids of APPROVATA ideas, preserving order", () => {
+    expect(approvedIds(ideas)).toEqual(["b", "c"]);
+  });
+  it("returns [] when none are approved", () => {
+    expect(approvedIds([{ id: "x", status: "NUOVA" }])).toEqual([]);
   });
 });

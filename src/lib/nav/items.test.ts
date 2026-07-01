@@ -13,6 +13,11 @@ describe("nav", () => {
     const childLabels = (brain?.children ?? []).map((c) => c.label);
     expect(childLabels).toContain("Trend & SEO");
   });
+  it("nests Archivio under Brain", () => {
+    const brain = navItems.find((a) => a.label === "Brain");
+    const childLabels = (brain?.children ?? []).map((c) => c.label);
+    expect(childLabels).toContain("Archivio");
+  });
   it("isActive: Home only matches exact /", () => {
     expect(isActive("/", "/")).toBe(true);
     expect(isActive("/dashboard", "/")).toBe(false);

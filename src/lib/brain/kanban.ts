@@ -35,3 +35,7 @@ export function formatVolume(value: number | null | undefined): string {
   const k = value / 1000;
   return `${Number.isInteger(k) ? k : k.toFixed(1)}k`;
 }
+
+export function approvedIds<T extends { id: string; status: string }>(ideas: T[]): string[] {
+  return ideas.filter((i) => i.status === "APPROVATA").map((i) => i.id);
+}
