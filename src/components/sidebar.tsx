@@ -17,24 +17,25 @@ export function Sidebar() {
       <nav className="space-y-1 text-sm">
         {navItems.map((area) => {
           const active = isActive(pathname, area.href);
+          const childActive = area.children?.some((sub) => isActive(pathname, sub.href)) ?? false;
           const Icon = navIcon(area.icon);
           return (
             <div key={area.href}>
               <Link
                 href={area.href}
-                className={`relative flex items-center gap-2.5 rounded-xl px-2.5 py-2 transition ${active ? "bg-sage-100 font-medium text-sage-700" : "text-ink-soft hover:bg-sand-100"}`}
+                className={`relative flex items-center gap-2.5 rounded-xl px-2.5 py-2 transition ${active || childActive ? "bg-sage-100 font-medium text-sage-700" : "text-ink-soft hover:bg-sand-100"}`}
               >
-                {active && <span className="absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-full bg-sage-500" aria-hidden />}
+                {(active || childActive) && <span className="absolute left-0 top-1.5 bottom-1.5 w-0.5 rounded-full bg-sage-500" aria-hidden />}
                 <Icon className="shrink-0" aria-hidden />
                 <span>{area.label}</span>
               </Link>
-              {area.children && active && (
+              {area.children && (active || childActive) && (
                 <div className="ml-8 mt-1 space-y-0.5">
                   {area.children.map((sub) => (
                     <Link
                       key={sub.href}
                       href={sub.href}
-                      className={`block rounded-lg px-2 py-1 text-xs transition ${pathname === sub.href ? "font-medium text-sage-700" : "text-ink-soft hover:text-ink"}`}
+                      className={`block rounded-lg px-2 py-1 text-xs transition ${isActive(pathname, sub.href) ? "font-medium text-sage-700" : "text-ink-soft hover:text-ink"}`}
                     >
                       {sub.label}
                     </Link>
