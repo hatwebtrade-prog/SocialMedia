@@ -55,4 +55,33 @@ describe("generateImageAsset", () => {
     expect(prompt).toContain("PROMPT MARKER");
     expect(prompt).not.toContain("concept");
   });
+
+  it("builds an archetype prompt for GPT when product data is available", async () => {
+    const deps = makeDeps({ loadProduct: vi.fn().mockResolvedValue({ nome: "Capelli Plus" }) });
+    await generateImageAsset(
+      { contentId: "c1", slideIndex: null, productId: "p1", archetype: "PRODUCT_HERO" },
+      deps as any,
+    );
+    const prompt = (deps.callOpenAI as any).mock.calls[0][0] as string;
+    expect(prompt).toContain("AGOCAP");
+    expect(prompt).toContain("Capelli Plus");
+    expect(prompt).toContain("white studio");
+  });
+
+  it("defaults to the ADV archetype when none is given", async () => {
+    const deps = makeDeps({ loadProduct: vi.fn().mockResolvedValue({ nome: "X" }) });
+    await generateImageAsset({ contentId: "c1", slideIndex: null, productId: "p1" }, deps as any);
+    const prompt = (deps.callOpenAI as any).mock.calls[0][0] as string;
+    expect(prompt).toContain("direct-response");
+  });
+
+  it("does NOT use the archetype builder for Higgsfield", async () => {
+    const deps = makeDeps({ loadProduct: vi.fn().mockResolvedValue({ nome: "X" }) });
+    await generateImageAsset(
+      { contentId: "c1", slideIndex: null, productId: "p1", provider: "HIGGSFIELD" },
+      deps as any,
+    );
+    const prompt = (deps.callOpenAI as any).mock.calls[0][0] as string;
+    expect(prompt).not.toContain("Avoid:");
+  });
 });

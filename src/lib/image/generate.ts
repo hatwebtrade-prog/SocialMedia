@@ -1,4 +1,5 @@
 import { buildImagePrompt } from "./prompt";
+import { buildArchetypePrompt, type ImageArchetype, type ProductPromptData } from "./archetypes";
 import { buildImagePromptFromBrief, isBriefEmpty, briefDimensions, type ImageBrief } from "./brief";
 import type { ImageProvider } from "./providers";
 import { buildBrandVisualContext } from "@/lib/knowledge/brand-context";
@@ -14,6 +15,8 @@ export interface ImageGenInput {
   /** Current creative-idea text from the client; when present it IS the prompt (overrides the
    *  persisted payload, avoiding a race with the onBlur save). */
   ideaCreativa?: string;
+  archetype?: ImageArchetype;
+  headline?: string;
 }
 
 export interface ImageDeps {
@@ -23,6 +26,7 @@ export interface ImageDeps {
   persistAsset: (args: { input: ImageGenInput; prompt: string; bytes: Buffer }) => Promise<{ assetId: string }>;
   ensureHiggsfieldRef?: (productId: string) => Promise<string | null>;
   loadBrandVisual?: () => Promise<import("@/lib/knowledge/brand-context").BrandVisualData | null>;
+  loadProduct?: (productId: string) => Promise<ProductPromptData | null>;
 }
 
 export interface ImageGenResult {
@@ -41,20 +45,33 @@ export async function generateImageAsset(
     const slideText = loaded.slideText;
     const mockup = input.useMockup && input.productId ? await deps.loadMockup(input.productId) : null;
     const fallback = slideText ? `${ideaCreativa}. ${slideText}` : ideaCreativa;
+    const provider = input.provider ?? "GPT";
     const brandProfile = deps.loadBrandVisual ? await deps.loadBrandVisual() : null;
-    const brandVisual = brandProfile ? buildBrandVisualContext(brandProfile, input.provider ?? "GPT") : undefined;
-    const prompt = input.brief && !isBriefEmpty(input.brief)
-      ? buildImagePromptFromBrief(input.brief, { provider: input.provider ?? "GPT", hasMockup: !!mockup, fallback, brandVisual })
-      : buildImagePrompt({ ideaCreativa, slideText, hasMockup: !!mockup });
+    const brandVisual = brandProfile ? buildBrandVisualContext(brandProfile, provider) : undefined;
+    const product = input.productId && deps.loadProduct ? await deps.loadProduct(input.productId) : null;
+    let prompt: string;
+    if (provider === "GPT" && product) {
+      prompt = buildArchetypePrompt(input.archetype ?? "ADV", {
+        product,
+        brief: input.brief,
+        hasMockup: !!mockup,
+        headline: input.headline,
+        formato: input.brief?.formato,
+      }).full;
+    } else if (input.brief && !isBriefEmpty(input.brief)) {
+      prompt = buildImagePromptFromBrief(input.brief, { provider, hasMockup: !!mockup, fallback, brandVisual });
+    } else {
+      prompt = buildImagePrompt({ ideaCreativa, slideText, hasMockup: !!mockup });
+    }
     const soulSize = briefDimensions(input.brief?.formato).soul;
     const styleId = input.styleId ?? input.brief?.stile;
     // Higgsfield uses the mockup directly via image_reference (fast); a cached SoulId (custom_reference)
     // is used only if already created for the product (no slow synchronous creation in the request path).
     let customReferenceId: string | undefined;
-    if (input.provider === "HIGGSFIELD" && input.useMockup && input.productId && deps.ensureHiggsfieldRef) {
+    if (provider === "HIGGSFIELD" && input.useMockup && input.productId && deps.ensureHiggsfieldRef) {
       customReferenceId = (await deps.ensureHiggsfieldRef(input.productId)) ?? undefined;
     }
-    const bytes = await deps.callOpenAI(prompt, mockup ?? undefined, input.provider, { styleId, soulSize, customReferenceId });
+    const bytes = await deps.callOpenAI(prompt, mockup ?? undefined, provider, { styleId, soulSize, customReferenceId });
     const { assetId } = await deps.persistAsset({ input, prompt, bytes });
     return { status: "DONE", assetId };
   } catch (err) {
