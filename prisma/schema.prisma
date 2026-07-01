@@ -245,6 +245,7 @@ model GeneratedContent {
   shopifyArticleUrl  String?
   facebookPostId     String?
   instagramPostId    String?
+  deletedAt          DateTime?
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
   assets        GeneratedAsset[]
@@ -254,6 +255,7 @@ model GeneratedContent {
   @@index([canale])
   @@index([dataPrevista])
   @@index([ideaId])
+  @@index([deletedAt])
 }
 
 model EditorialCalendarItem {
