@@ -10,6 +10,7 @@ import { DESTINAZIONI } from "@/lib/brain/enums";
 import { KanbanBoard } from "@/components/brain/kanban-board";
 import type { KanbanIdea } from "@/components/brain/idea-card";
 import type { IdeaStatus } from "@/lib/brain/kanban";
+import { approvedIds } from "@/lib/brain/kanban";
 import { Button, SegmentedControl, Skeleton, EmptyState, useToast } from "@/components/ui";
 
 type View = "kanban" | "table";
@@ -81,6 +82,25 @@ export function IdeaWorkspace() {
     } catch { show("Spostamento nel cestino non riuscito.", "error"); }
   };
 
+  const archiveOne = useCallback(async (id: string) => {
+    try {
+      const res = await fetch("/api/ideas/bulk-archive", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ ids: [id] }) });
+      if (!res.ok) { show("Archiviazione non riuscita.", "error"); return; }
+      show("Idea archiviata.");
+      await load();
+    } catch { show("Archiviazione non riuscita.", "error"); }
+  }, [load, show]);
+
+  const bulkArchive = async (ids: string[]) => {
+    if (ids.length === 0) return;
+    try {
+      const res = await fetch("/api/ideas/bulk-archive", { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ ids }) });
+      if (!res.ok) { show("Archiviazione non riuscita.", "error"); return; }
+      show("Idee archiviate.");
+      await load();
+    } catch { show("Archiviazione non riuscita.", "error"); }
+  };
+
   const bulkStatus = async (s: string) => {
     if (selected.size === 0) return;
     try {
@@ -117,6 +137,7 @@ export function IdeaWorkspace() {
               <input type="checkbox" checked={showDiscarded} onChange={(e) => setShowDiscarded(e.target.checked)} /> Mostra scartate
             </label>
           )}
+          <Button size="sm" variant="ghost" onClick={() => bulkArchive(approvedIds(ideas))} disabled={approvedIds(ideas).length === 0}>📥 Archivia approvate</Button>
           <SegmentedControl<View> options={[{ value: "kanban", label: "Kanban" }, { value: "table", label: "Tabella" }]} value={view} onChange={changeView} />
         </div>
       </div>
@@ -127,6 +148,7 @@ export function IdeaWorkspace() {
           <Button size="sm" variant="danger" onClick={() => bulkStatus("SCARTATA")}>Scarta</Button>
           <Button size="sm" variant="soft" onClick={() => bulkStatus("INTERESSANTE")}>Interessante</Button>
           <Button size="sm" variant="ghost" onClick={bulkTrash}>🗑 Cestina ({selected.size})</Button>
+          <Button size="sm" variant="ghost" onClick={() => bulkArchive([...selected])}>📥 Archivia ({selected.size})</Button>
           <span className="ml-2 text-ink-soft">Assegna a canali:</span>
           {DESTINAZIONI.map((d) => (
             <label key={d} className="flex items-center gap-1"><input type="checkbox" checked={destSel.has(d)} onChange={() => toggleDest(d)} />{d}</label>
@@ -140,7 +162,7 @@ export function IdeaWorkspace() {
       ) : visible.length === 0 ? (
         <EmptyState title="Nessuna idea" hint="Genera nuove idee dal Brain." action={<Link href="/genera"><Button>Genera idee</Button></Link>} />
       ) : view === "kanban" ? (
-        <KanbanBoard ideas={visible} setIdeas={setIdeas} selected={selected} onToggleSelect={toggle} showDiscarded={showDiscarded} persist={persist} onTrash={trashOne} />
+        <KanbanBoard ideas={visible} setIdeas={setIdeas} selected={selected} onToggleSelect={toggle} showDiscarded={showDiscarded} persist={persist} onTrash={trashOne} onArchive={archiveOne} />
       ) : (
         <table className="w-full border-collapse text-sm">
           <thead>
@@ -159,7 +181,10 @@ export function IdeaWorkspace() {
                 <td className="p-2">{i.seoScore}</td>
                 <td className="p-2">{i.priority}</td>
                 <td className="p-2"><StatusBadge status={i.status} /></td>
-                <td className="p-2"><button onClick={() => trashOne(i.id)} aria-label="Sposta nel cestino" title="Sposta nel cestino" className="text-ink-soft hover:text-red-600">🗑</button></td>
+                <td className="p-2 whitespace-nowrap">
+                  <button onClick={() => archiveOne(i.id)} aria-label="Archivia" title="Archivia" className="mr-2 text-ink-soft hover:text-sage-700">📥</button>
+                  <button onClick={() => trashOne(i.id)} aria-label="Sposta nel cestino" title="Sposta nel cestino" className="text-ink-soft hover:text-red-600">🗑</button>
+                </td>
               </tr>
             ))}
           </tbody>

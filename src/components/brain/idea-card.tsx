@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { LuTrash2 } from "react-icons/lu";
+import { LuTrash2, LuArchive } from "react-icons/lu";
 import { Card, Pill } from "@/components/ui";
 import { ChannelIcons } from "@/components/channel-icon";
 import { formatStat, formatVolume, type IdeaStatus } from "@/lib/brain/kanban";
@@ -23,12 +23,23 @@ export interface KanbanIdea {
 
 const SOURCE_LABEL: Record<string, string> = { "ai-brainstorming": "AI", manuale: "Manuale", seozoom: "SEOZoom" };
 
-export function IdeaCard({ idea, selected, onToggleSelect, onTrash }: { idea: KanbanIdea; selected: boolean; onToggleSelect: (id: string) => void; onTrash?: (id: string) => void }) {
+export function IdeaCard({ idea, selected, onToggleSelect, onTrash, onArchive }: { idea: KanbanIdea; selected: boolean; onToggleSelect: (id: string) => void; onTrash?: (id: string) => void; onArchive?: (id: string) => void }) {
   return (
     <Card interactive className={`p-3 ${selected ? "ring-2 ring-sage-400" : ""}`}>
       <div className="mb-2 flex items-center justify-between gap-2">
         <Pill tone="sage">P{idea.priority}</Pill>
         <div className="flex items-center gap-1.5">
+          {onArchive && (
+            <button
+              onClick={() => onArchive(idea.id)}
+              onPointerDown={(e) => e.stopPropagation()}
+              aria-label="Archivia"
+              title="Archivia"
+              className="text-ink-soft transition hover:text-sage-700"
+            >
+              <LuArchive size={15} />
+            </button>
+          )}
           {onTrash && (
             <button
               onClick={() => onTrash(idea.id)}
