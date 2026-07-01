@@ -23,6 +23,7 @@ export async function GET(request: Request) {
     if (Number.isInteger(p)) where.priority = p;
   }
   where.deletedAt = null;
+  where.archivedAt = null;
 
   const ideas = await prisma.idea.findMany({
     where,

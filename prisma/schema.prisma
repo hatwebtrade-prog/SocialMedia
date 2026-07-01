@@ -211,6 +211,7 @@ model Idea {
   createdAt              DateTime       @default(now())
   updatedAt              DateTime       @updatedAt
   deletedAt              DateTime?
+  archivedAt             DateTime?
   contenuti              GeneratedContent[]
 
   @@index([status, category])
@@ -219,6 +220,7 @@ model Idea {
   @@index([productId])
   @@index([keyword])
   @@index([deletedAt])
+  @@index([archivedAt])
 }
 
 model GeneratedContent {
