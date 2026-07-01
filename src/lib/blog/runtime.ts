@@ -7,6 +7,7 @@ import { fetchKeywords } from "@/lib/seozoom/client";
 import type { NormalizedKeyword } from "@/lib/seozoom/select";
 import { fetchProductsWithMetafields } from "@/lib/shopify/products";
 import { buildBlogPrompt, type BlogIdea } from "./prompt";
+import { scrubBlogPayload } from "./competitors";
 import { blogArticleSchema } from "./schema";
 import { buildProductCards, type ProductRec } from "./product-cards";
 import type { BlogDeps, BlogClaudeResult } from "./generate";
@@ -82,7 +83,7 @@ export function buildBlogDeps(): BlogDeps {
       });
       const textBlock = response.content.find((b) => b.type === "text");
       if (!textBlock || textBlock.type !== "text") throw new Error("Output AI non conforme");
-      const payload = blogArticleSchema.parse(JSON.parse(stripFences(textBlock.text)));
+      const payload = scrubBlogPayload(blogArticleSchema.parse(JSON.parse(stripFences(textBlock.text))));
       return {
         payload,
         promptUsato: prompt,

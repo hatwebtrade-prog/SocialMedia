@@ -1,4 +1,5 @@
 import type { ShopProduct } from "@/lib/shopify/products";
+import { COMPETITORS } from "./competitors";
 
 export interface BlogIdea {
   keyword: string | null;
@@ -64,6 +65,7 @@ Scrivi un articolo per il blog ottimizzato SEO e GEO (Generative Engine Optimiza
 - faq: 3-5 domande/risposte reali e utili.
 - prodotti: solo quelli pertinenti scelti dal catalogo (handle, titolo, url esatti dal catalogo); cta coerente. Se il catalogo è vuoto, prodotti = [] e nessun link inventato.
 - Ancora tutto alla knowledge base (tono, claim prudenti e conformi).
+- VIETATO citare marchi o prodotti di aziende concorrenti (es. ${COMPETITORS.join(", ")}) in qualsiasi punto dell'articolo, incluse le FAQ. Parla solo di Agocap e usa termini generici.
 
 Rispondi esclusivamente con un oggetto JSON valido di forma:
 {"keywordPrincipale":"...","keywordSecondarie":["..."],"intentoRicerca":"...","titoloSeo":"...","metaDescription":"...","puntiChiave":["..."],"corpoHtml":"...","faq":[{"domanda":"...","risposta":"..."}],"cta":"...","prodotti":[{"handle":"...","titolo":"...","url":"..."}]}
