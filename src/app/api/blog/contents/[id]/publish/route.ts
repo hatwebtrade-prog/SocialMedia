@@ -21,7 +21,7 @@ function buildDeps(): BlogPublishDeps {
   return {
     loadContent: async (contentId) => {
       const c = await prisma.generatedContent.findUnique({ where: { id: contentId }, include: { assets: true } });
-      if (!c || c.canale !== "BLOG") return null;
+      if (!c || c.canale !== "BLOG" || c.deletedAt) return null;
       const p = (c.payload ?? {}) as {
         titoloSeo?: string; corpoHtml?: string; jsonLd?: string;
         puntiChiave?: string[]; faq?: { domanda: string; risposta: string }[]; cta?: string;

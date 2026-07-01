@@ -15,7 +15,7 @@ export async function GET(request: Request) {
     where.scheduledAt = { ...(from ? { gte: new Date(from) } : {}), ...(to ? { lte: new Date(to) } : {}) };
   }
   if (channel) where.channel = channel;
-  if (status) where.content = { status };
+  where.content = { deletedAt: null, ...(status ? { status } : {}) };
 
   const items = await prisma.editorialCalendarItem.findMany({
     where,
