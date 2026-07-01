@@ -47,3 +47,23 @@ export async function publishArticle(args: PublishArticleArgs): Promise<{ id: nu
   const json = await res.json();
   return { id: json.article.id, handle: json.article.handle };
 }
+
+/** Deletes a published article on Shopify via the Admin GraphQL `articleDelete` mutation.
+ *  Returns `{ ok, notFound }`; an already-absent article resolves to `{ ok: true, notFound: true }`. */
+export async function deleteArticle(articleId: string): Promise<{ ok: boolean; notFound: boolean }> {
+  const { shop, token, version } = cfg();
+  const query = `mutation { articleDelete(id: "gid://shopify/Article/${articleId}") { deletedArticleId userErrors { field message } } }`;
+  const res = await fetch(`https://${shop}/admin/api/${version}/graphql.json`, {
+    method: "POST",
+    headers: { "X-Shopify-Access-Token": token, "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify({ query }),
+  });
+  if (!res.ok) throw new Error(`Shopify articleDelete HTTP ${res.status}: ${(await res.text().catch(() => "")).slice(0, 200)}`);
+  const json = await res.json();
+  const payload = json?.data?.articleDelete;
+  if (payload?.deletedArticleId) return { ok: true, notFound: false };
+  const errs: { message?: string }[] = payload?.userErrors ?? json?.errors ?? [];
+  const msg = errs.map((e) => e.message).filter(Boolean).join("; ");
+  if (/not found|does not exist|doesn't exist|invalid.*id|no such/i.test(msg)) return { ok: true, notFound: true };
+  throw new Error(`Shopify articleDelete: ${msg || "esito sconosciuto"}`);
+}
