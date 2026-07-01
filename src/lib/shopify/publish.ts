@@ -60,9 +60,21 @@ export async function deleteArticle(articleId: string): Promise<{ ok: boolean; n
   });
   if (!res.ok) throw new Error(`Shopify articleDelete HTTP ${res.status}: ${(await res.text().catch(() => "")).slice(0, 200)}`);
   const json = await res.json();
-  const payload = json?.data?.articleDelete;
+  return classifyArticleDelete(json);
+}
+
+/** Classifies a Shopify `articleDelete` GraphQL response. Top-level GraphQL errors (e.g. the mutation
+ *  not existing on the API version) are HARD failures (throw). Only an article-level `userErrors`
+ *  message indicating the article is absent counts as idempotent success (`notFound: true`). */
+export function classifyArticleDelete(json: unknown): { ok: boolean; notFound: boolean } {
+  const j = json as { data?: { articleDelete?: { deletedArticleId?: unknown; userErrors?: { message?: string }[] } }; errors?: { message?: string }[] };
+  if (Array.isArray(j?.errors) && j.errors.length > 0) {
+    const msg = j.errors.map((e) => e.message).filter(Boolean).join("; ");
+    throw new Error(`Shopify articleDelete: ${msg || "errore GraphQL"}`);
+  }
+  const payload = j?.data?.articleDelete;
   if (payload?.deletedArticleId) return { ok: true, notFound: false };
-  const errs: { message?: string }[] = payload?.userErrors ?? json?.errors ?? [];
+  const errs = payload?.userErrors ?? [];
   const msg = errs.map((e) => e.message).filter(Boolean).join("; ");
   if (/not found|does not exist|doesn't exist|invalid.*id|no such/i.test(msg)) return { ok: true, notFound: true };
   throw new Error(`Shopify articleDelete: ${msg || "esito sconosciuto"}`);
