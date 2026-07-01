@@ -22,7 +22,7 @@ export interface ImageGenInput {
 export interface ImageDeps {
   loadContent: (contentId: string, slideIndex: number | null) => Promise<{ ideaCreativa: string; slideText: string | null }>;
   loadMockup: (productId: string) => Promise<Buffer | null>;
-  callOpenAI: (prompt: string, mockup?: Buffer, provider?: ImageProvider, opts?: { styleId?: string; soulSize?: string; customReferenceId?: string }) => Promise<Buffer>;
+  callOpenAI: (prompt: string, mockup?: Buffer, provider?: ImageProvider, opts?: { styleId?: string; soulSize?: string; openaiSize?: string; customReferenceId?: string }) => Promise<Buffer>;
   persistAsset: (args: { input: ImageGenInput; prompt: string; bytes: Buffer }) => Promise<{ assetId: string }>;
   ensureHiggsfieldRef?: (productId: string) => Promise<string | null>;
   loadBrandVisual?: () => Promise<import("@/lib/knowledge/brand-context").BrandVisualData | null>;
@@ -53,6 +53,7 @@ export async function generateImageAsset(
     if (provider === "GPT" && product) {
       prompt = buildArchetypePrompt(input.archetype ?? "ADV", {
         product,
+        brandVisual,
         brief: input.brief,
         hasMockup: !!mockup,
         headline: input.headline,
@@ -63,7 +64,9 @@ export async function generateImageAsset(
     } else {
       prompt = buildImagePrompt({ ideaCreativa, slideText, hasMockup: !!mockup });
     }
-    const soulSize = briefDimensions(input.brief?.formato).soul;
+    const dims = briefDimensions(input.brief?.formato);
+    const soulSize = dims.soul;
+    const openaiSize = dims.openaiSize;
     const styleId = input.styleId ?? input.brief?.stile;
     // Higgsfield uses the mockup directly via image_reference (fast); a cached SoulId (custom_reference)
     // is used only if already created for the product (no slow synchronous creation in the request path).
@@ -71,7 +74,7 @@ export async function generateImageAsset(
     if (provider === "HIGGSFIELD" && input.useMockup && input.productId && deps.ensureHiggsfieldRef) {
       customReferenceId = (await deps.ensureHiggsfieldRef(input.productId)) ?? undefined;
     }
-    const bytes = await deps.callOpenAI(prompt, mockup ?? undefined, provider, { styleId, soulSize, customReferenceId });
+    const bytes = await deps.callOpenAI(prompt, mockup ?? undefined, provider, { styleId, soulSize, openaiSize, customReferenceId });
     const { assetId } = await deps.persistAsset({ input, prompt, bytes });
     return { status: "DONE", assetId };
   } catch (err) {

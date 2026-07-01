@@ -17,6 +17,7 @@ export interface ArchetypeInputs {
   hasMockup: boolean;
   headline?: string | null;
   formato?: "verticale" | "quadrato" | "orizzontale";
+  brandVisual?: string | null;
 }
 
 export interface BuiltPrompt {
@@ -80,9 +81,9 @@ const AVOID =
   "exaggerated results, cluttered composition, oversaturated colors";
 
 const FORMATO_LABEL: Record<Formato, string> = {
-  verticale: "vertical 4:5 social format",
+  verticale: "vertical 2:3 portrait social format",
   quadrato: "square 1:1 social format",
-  orizzontale: "horizontal 1.91:1 social format",
+  orizzontale: "horizontal 3:2 landscape social format",
 };
 
 /** First sentence (max ~160 chars) of the product description, single line; falls back to category. */
@@ -145,6 +146,7 @@ export function buildArchetypePrompt(archetype: ImageArchetype, inputs: Archetyp
     `Product placement: ${preset.productPlacement}`,
     ingredientsLine,
     b?.note?.trim() ? `Additional direction: ${b.note.trim()}.` : "",
+    inputs.brandVisual?.trim() ? `Brand visual style: ${inputs.brandVisual.trim()}.` : "",
     "Brand feeling: premium, clean, trustworthy, natural wellness, Italian nutraceutical brand, elegant but accessible.",
     `Text rule: ${textRule(archetype, inputs.headline)}`,
   ].filter((l) => l !== "");

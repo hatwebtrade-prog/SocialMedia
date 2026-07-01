@@ -84,4 +84,11 @@ describe("generateImageAsset", () => {
     const prompt = (deps.callOpenAI as any).mock.calls[0][0] as string;
     expect(prompt).not.toContain("Avoid:");
   });
+
+  it("passes the OpenAI size derived from the brief formato", async () => {
+    const deps = makeDeps();
+    await generateImageAsset({ contentId: "c1", slideIndex: null, brief: { formato: "verticale" } }, deps as any);
+    const opts = (deps.callOpenAI as any).mock.calls[0][3];
+    expect(opts.openaiSize).toBe("1024x1536");
+  });
 });

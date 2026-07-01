@@ -62,7 +62,7 @@ describe("buildArchetypePrompt", () => {
 
   it("maps the format label and uses the archetype default when absent", () => {
     const def = buildArchetypePrompt("UGC", { product, hasMockup: false }).full;
-    expect(def).toContain("vertical 4:5");
+    expect(def).toContain("vertical 2:3");
     const sq = buildArchetypePrompt("UGC", { product, hasMockup: false, formato: "quadrato" }).full;
     expect(sq).toContain("square 1:1");
   });
@@ -79,5 +79,12 @@ describe("buildArchetypePrompt", () => {
   it("lists ingredients for PRODUCT_HERO", () => {
     const { full } = buildArchetypePrompt("PRODUCT_HERO", { product, hasMockup: false });
     expect(full).toContain("biotina, zinco");
+  });
+
+  it("includes the brand visual guidelines only when provided", () => {
+    const withBrand = buildArchetypePrompt("ADV", { product, hasMockup: false, brandVisual: "warm terracotta palette, film grain" }).full;
+    const without = buildArchetypePrompt("ADV", { product, hasMockup: false }).full;
+    expect(withBrand).toContain("warm terracotta palette, film grain");
+    expect(without).not.toContain("Brand visual style");
   });
 });
