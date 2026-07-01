@@ -32,6 +32,8 @@ export default function MetaContentDetail() {
   const [products, setProducts] = useState<{ id: string; nome: string; imagePath: string | null }[]>([]);
   const [provider, setProvider] = useState("GPT");
   const [brief, setBrief] = useState<Brief>({});
+  const [archetype, setArchetype] = useState<"UGC" | "ADV" | "PRODUCT_HERO">("ADV");
+  const [headline, setHeadline] = useState("");
   const [perImage, setPerImage] = useState<Record<string, ProductMockupValue>>({});
   const ideaRef = useRef<HTMLTextAreaElement>(null);
   useEffect(() => { fetch("/api/products").then((r) => r.json()).then((d) => setProducts(Array.isArray(d) ? d : [])).catch(() => setProducts([])); }, []);
@@ -56,7 +58,7 @@ export default function MetaContentDetail() {
     const v = valueFor(slideIndex);
     const res = await fetch(`/api/meta/contents/${id}/image`, {
       method: "POST", headers: { "content-type": "application/json" },
-      body: JSON.stringify({ slideIndex, productId: v.productId || undefined, useMockup: v.useMockup && !!v.productId, provider, brief, styleId: brief.stile, ideaCreativa: ideaRef.current?.value ?? undefined }),
+      body: JSON.stringify({ slideIndex, productId: v.productId || undefined, useMockup: v.useMockup && !!v.productId, provider, brief, styleId: brief.stile, ideaCreativa: ideaRef.current?.value ?? undefined, archetype, headline: headline.trim() || undefined }),
     });
     const json = await res.json();
     setBusyImg(null);
@@ -107,6 +109,33 @@ export default function MetaContentDetail() {
             <option value="MANUAL">Caricamento manuale</option>
           </select>
         </div>
+        {provider === "GPT" && (
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <span className="text-xs text-neutral-600">Stile immagine:</span>
+            {([
+              { k: "UGC", label: "UGC realistico" },
+              { k: "ADV", label: "ADV premium" },
+              { k: "PRODUCT_HERO", label: "Product Hero" },
+            ] as const).map((o) => (
+              <button
+                key={o.k}
+                type="button"
+                onClick={() => setArchetype(o.k)}
+                className={`rounded-full border px-2.5 py-1 text-xs transition ${archetype === o.k ? "border-sage-500 bg-sage-100 text-sage-700" : "border-neutral-300 text-neutral-600 hover:bg-neutral-100"}`}
+              >
+                {o.label}
+              </button>
+            ))}
+            {archetype === "ADV" && (
+              <input
+                value={headline}
+                onChange={(e) => setHeadline(e.target.value)}
+                placeholder="Headline breve (max 5 parole, opzionale)"
+                className="ml-1 min-w-[16rem] flex-1 rounded border p-1 text-xs"
+              />
+            )}
+          </div>
+        )}
         <p className="mt-1 text-xs text-neutral-500">Provider e brief valgono per tutte le immagini. Il prodotto si sceglie per singola immagine qui sotto.</p>
         <ImageBriefForm provider={provider} value={brief} onChange={setBrief} />
       </div>
