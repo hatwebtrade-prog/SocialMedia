@@ -187,28 +187,7 @@ export default function BlogDetailPage({ params }: { params: Promise<{ id: strin
         <GenerationProgress running={imgBusy} estimatedMs={90000} label="Generazione immagine" />
         {imgMsg && <p className="mt-2">{imgMsg}</p>}
       </div>
-      {p.puntiChiave?.length ? (
-        <div className="mb-4 rounded bg-amber-50 p-3 text-sm">
-          <strong>Punti chiave</strong>
-          <ul className="ml-4 list-disc">{p.puntiChiave.map((k, i) => <li key={i}>{k}</li>)}</ul>
-        </div>
-      ) : null}
       <div className="mb-4" dangerouslySetInnerHTML={{ __html: assembleArticleHtml(p, { headerSrc: c.assets?.[0] ? `/api/assets/${c.assets[0].id}` : null, cards: p.productCards }) }} />
-      {p.cta && <p className="mb-4 font-medium">{p.cta}</p>}
-      {p.prodotti?.length ? (
-        <div className="mb-4 text-sm">
-          <strong>Prodotti collegati</strong>
-          <ul className="ml-4 list-disc">
-            {p.prodotti.map((pr) => <li key={pr.handle}><a href={pr.url} className="text-blue-600 hover:underline" target="_blank" rel="noreferrer">{pr.titolo}</a></li>)}
-          </ul>
-        </div>
-      ) : null}
-      {p.faq?.length ? (
-        <div className="mb-4 text-sm">
-          <strong>FAQ</strong>
-          {p.faq.map((f, i) => <div key={i} className="mt-2"><div className="font-medium">{f.domanda}</div><div>{f.risposta}</div></div>)}
-        </div>
-      ) : null}
       {p.jsonLd && <details className="text-xs text-neutral-500"><summary>JSON-LD</summary><pre className="overflow-auto">{p.jsonLd}</pre></details>}
     </div>
   );
