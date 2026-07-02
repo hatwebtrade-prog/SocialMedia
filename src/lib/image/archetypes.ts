@@ -18,6 +18,8 @@ export interface ArchetypeInputs {
   headline?: string | null;
   formato?: "verticale" | "quadrato" | "orizzontale";
   brandVisual?: string | null;
+  /** The user's creative idea for this post — drives the scene/concept. */
+  ideaCreativa?: string | null;
 }
 
 export interface BuiltPrompt {
@@ -132,8 +134,11 @@ export function buildArchetypePrompt(archetype: ImageArchetype, inputs: Archetyp
         `${inputs.product.ingredienti ? `: ${inputs.product.ingredienti.replace(/\s+/g, " ").trim()}` : ""}.`
       : "";
 
+  const idea = (inputs.ideaCreativa ?? "").replace(/\s+/g, " ").trim();
+
   const lines = [
     "Create a high-end realistic Instagram/Facebook advertising image for the Italian supplement brand AGOCAP. Ready to publish.",
+    idea ? `Creative concept to depict — this is the most important instruction, build the whole scene around it: ${idea}` : "",
     "Product:",
     desc ? `${inputs.product.nome} — ${desc}` : inputs.product.nome,
     mockupBlock,

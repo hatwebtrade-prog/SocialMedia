@@ -16,6 +16,14 @@ describe("buildArchetypePrompt", () => {
     expect(full).toContain("Instagram/Facebook");
   });
 
+  it("puts the creative idea prominently in the prompt when provided", () => {
+    const withIdea = buildArchetypePrompt("ADV", { product, hasMockup: false, ideaCreativa: "donna in spiaggia al tramonto" }).full;
+    const without = buildArchetypePrompt("ADV", { product, hasMockup: false }).full;
+    expect(withIdea).toContain("Creative concept to depict");
+    expect(withIdea).toContain("donna in spiaggia al tramonto");
+    expect(without).not.toContain("Creative concept to depict");
+  });
+
   it("includes the mockup fidelity block only when hasMockup", () => {
     const withM = buildArchetypePrompt("ADV", { product, hasMockup: true }).full;
     const without = buildArchetypePrompt("ADV", { product, hasMockup: false }).full;

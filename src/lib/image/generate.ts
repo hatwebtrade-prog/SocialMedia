@@ -58,6 +58,7 @@ export async function generateImageAsset(
         hasMockup: !!mockup,
         headline: input.headline,
         formato: input.brief?.formato,
+        ideaCreativa,
       }).full;
     } else if (input.brief && !isBriefEmpty(input.brief)) {
       prompt = buildImagePromptFromBrief(input.brief, { provider, hasMockup: !!mockup, fallback, brandVisual });
