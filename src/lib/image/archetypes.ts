@@ -126,7 +126,9 @@ export function buildArchetypePrompt(archetype: ImageArchetype, inputs: Archetyp
     ? "Use the provided product mockup as the EXACT packaging reference. Keep the packaging design, " +
       "colors, logo, proportions and the readable product name IDENTICAL to the original mockup. " +
       "Do NOT redesign the package. Do NOT invent, change or add any text on the label."
-    : "";
+    : "No product reference image is provided: do NOT invent, fabricate or show any fake brand, logo " +
+      "or made-up text on the packaging. Keep any package plain and unbranded, and never fabricate a " +
+      "product identity that is not real.";
 
   const ingredientsLine =
     archetype === "PRODUCT_HERO"

@@ -35,11 +35,24 @@ describe("generateImageAsset", () => {
     expect((deps.callOpenAI as any).mock.calls[0][1]).toBeInstanceOf(Buffer);
   });
 
-  it("does NOT load a mockup when useMockup is false/absent", async () => {
+  it("does NOT load a mockup when no product is selected", async () => {
     const deps = makeDeps();
     await generateImageAsset({ contentId: "c1", slideIndex: null }, deps as any);
     expect(deps.loadMockup).not.toHaveBeenCalled();
     expect((deps.callOpenAI as any).mock.calls[0][1]).toBeUndefined();
+  });
+
+  it("auto-attaches the product image for GPT even without useMockup (no invented product)", async () => {
+    const deps = makeDeps({ loadProduct: vi.fn().mockResolvedValue({ nome: "X" }) });
+    await generateImageAsset({ contentId: "c1", slideIndex: null, productId: "p1" }, deps as any);
+    expect(deps.loadMockup).toHaveBeenCalledWith("p1");
+    expect((deps.callOpenAI as any).mock.calls[0][1]).toBeInstanceOf(Buffer);
+  });
+
+  it("does NOT auto-attach the mockup for Higgsfield without useMockup", async () => {
+    const deps = makeDeps({ loadProduct: vi.fn().mockResolvedValue({ nome: "X" }) });
+    await generateImageAsset({ contentId: "c1", slideIndex: null, productId: "p1", provider: "HIGGSFIELD" }, deps as any);
+    expect(deps.loadMockup).not.toHaveBeenCalled();
   });
 
   it("passes the chosen provider to callOpenAI", async () => {

@@ -43,9 +43,12 @@ export async function generateImageAsset(
     const loaded = await deps.loadContent(input.contentId, input.slideIndex);
     const ideaCreativa = input.ideaCreativa?.trim() ? input.ideaCreativa.trim() : loaded.ideaCreativa;
     const slideText = loaded.slideText;
-    const mockup = input.useMockup && input.productId ? await deps.loadMockup(input.productId) : null;
-    const fallback = slideText ? `${ideaCreativa}. ${slideText}` : ideaCreativa;
     const provider = input.provider ?? "GPT";
+    // For GPT always attach the product's real packaging when a product is selected — without a
+    // reference image gpt-image invents a fake product/label. Higgsfield keeps its explicit toggle.
+    const wantProductImage = !!input.productId && (provider === "GPT" || !!input.useMockup);
+    const mockup = wantProductImage && input.productId ? await deps.loadMockup(input.productId) : null;
+    const fallback = slideText ? `${ideaCreativa}. ${slideText}` : ideaCreativa;
     const brandProfile = deps.loadBrandVisual ? await deps.loadBrandVisual() : null;
     const brandVisual = brandProfile ? buildBrandVisualContext(brandProfile, provider) : undefined;
     const product = input.productId && deps.loadProduct ? await deps.loadProduct(input.productId) : null;

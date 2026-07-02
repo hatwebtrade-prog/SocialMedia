@@ -29,6 +29,7 @@ describe("buildArchetypePrompt", () => {
     const without = buildArchetypePrompt("ADV", { product, hasMockup: false }).full;
     expect(withM).toContain("EXACT packaging reference");
     expect(without).not.toContain("EXACT packaging reference");
+    expect(without).toContain("never fabricate a");
   });
 
   it("always appends the Avoid block with key entries", () => {
