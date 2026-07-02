@@ -22,7 +22,7 @@ const STYLE = `<style>
 .ag-article{max-width:740px;margin:32px auto;padding:0 20px;font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;color:#2b3d4e;line-height:1.7;font-size:17px;}
 .ag-article h1{font-size:33px;line-height:1.2;font-weight:800;margin:0 0 10px;}
 .ag-article h2{font-size:24px;font-weight:800;margin:34px 0 12px;}
-.ag-header{width:100%;max-height:200px;object-fit:cover;border-radius:16px;display:block;margin-bottom:24px;}
+.ag-header{width:100%;height:auto;border-radius:16px;display:block;margin:0 auto 24px;}
 .ag-summary{background:#f2f9f7;border-left:4px solid #a9d9cb;border-radius:14px;padding:18px 20px;margin:0 0 30px;}
 .ag-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px;}
 .ag-card{background:#fff;border:1px solid #e7f2ef;border-radius:20px;padding:22px;box-shadow:0 10px 28px rgba(43,61,78,.08);display:flex;flex-direction:column;align-items:center;text-align:center;transition:transform .25s ease,box-shadow .25s ease;}
@@ -104,7 +104,7 @@ export function injectAtMidpoint(html: string, block: string): string {
 
 export function assembleArticleHtml(payload: BlogPayloadLike, opts: AssembleOpts = {}): string {
   const cards = opts.cards;
-  const header = opts.headerSrc ? `<img class="ag-header" src="${escapeHtml(opts.headerSrc)}" style="display:block;height:auto;width:min(1000px,92vw);position:relative;left:50%;transform:translateX(-50%);border-radius:16px;margin:8px 0 28px;" alt="">` : "";
+  const header = opts.headerSrc ? `<img class="ag-header" src="${escapeHtml(opts.headerSrc)}" style="display:block;width:100%;height:auto;max-height:none;object-fit:contain;border-radius:16px;margin:0 auto 24px;" alt="">` : "";
   let body = payload.corpoHtml ?? "";
   if (cards?.main) body = injectAtMidpoint(body, mainCardHtml(cards.main));
   const inner = [
