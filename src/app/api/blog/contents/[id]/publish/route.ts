@@ -33,8 +33,8 @@ function buildDeps(): BlogPublishDeps {
         const b64 = readAssetBase64(asset.path);
         if (b64) {
           const slim = await sharp(Buffer.from(b64, "base64"))
-            .resize(1200, 300, { fit: "cover" })
-            .jpeg({ quality: 78 })
+            .resize({ width: 1200, withoutEnlargement: true })
+            .jpeg({ quality: 82 })
             .toBuffer();
           headerSrc = `data:image/jpeg;base64,${slim.toString("base64")}`;
         }
