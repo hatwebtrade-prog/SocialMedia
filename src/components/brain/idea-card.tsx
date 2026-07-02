@@ -4,7 +4,7 @@ import Link from "next/link";
 import { LuTrash2, LuArchive } from "react-icons/lu";
 import { Card, Pill } from "@/components/ui";
 import { ChannelIcons } from "@/components/channel-icon";
-import { formatStat, formatVolume, type IdeaStatus } from "@/lib/brain/kanban";
+import { formatStat, formatVolume, productTone, shortProductName, type IdeaStatus } from "@/lib/brain/kanban";
 
 export interface KanbanIdea {
   id: string;
@@ -63,6 +63,13 @@ export function IdeaCard({ idea, selected, onToggleSelect, onTrash, onArchive }:
       <Link href={`/ideas/${idea.id}`} className="block font-display text-sm font-semibold leading-snug text-ink hover:text-sage-700 line-clamp-2">
         {idea.titolo}
       </Link>
+      {idea.product && (
+        <div className="mt-2 flex" title={idea.product.nome}>
+          <Pill tone={productTone(idea.product.nome)} className="max-w-full">
+            <span className="truncate">📦 {shortProductName(idea.product.nome)}</span>
+          </Pill>
+        </div>
+      )}
       {idea.keyword && <div className="mt-2"><Pill tone="neutral">{idea.keyword}</Pill></div>}
       <div className="mt-2 text-xs text-ink-soft">
         SEO {formatStat(idea.seoScore)} · vol {formatVolume(idea.volumeRicerca)} · KD {formatStat(idea.difficolta)}
@@ -71,7 +78,6 @@ export function IdeaCard({ idea, selected, onToggleSelect, onTrash, onArchive }:
         <ChannelIcons channels={idea.destinazioni ?? []} />
         <span className="text-[11px] text-ink-soft">{idea.source ? (SOURCE_LABEL[idea.source.key] ?? idea.source.key) : ""}</span>
       </div>
-      {idea.product && <div className="mt-1 text-[11px] text-ink-soft">📦 {idea.product.nome}</div>}
     </Card>
   );
 }

@@ -39,3 +39,19 @@ export function formatVolume(value: number | null | undefined): string {
 export function approvedIds<T extends { id: string; status: string }>(ideas: T[]): string[] {
   return ideas.filter((i) => i.status === "APPROVATA").map((i) => i.id);
 }
+
+export type ProductTone = "sage" | "amber" | "green" | "sky" | "red" | "stone";
+const PRODUCT_TONES: ProductTone[] = ["sage", "amber", "green", "sky", "red", "stone"];
+
+/** Deterministic pill tone for a product, so the same product always shows the same colour. */
+export function productTone(key: string): ProductTone {
+  let h = 0;
+  for (let i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) >>> 0;
+  return PRODUCT_TONES[h % PRODUCT_TONES.length];
+}
+
+/** Short product label: the part before "|" (Shopify title separator), trimmed. */
+export function shortProductName(nome: string): string {
+  const s = nome.split("|")[0].trim();
+  return s || nome.trim();
+}

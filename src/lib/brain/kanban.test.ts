@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
-  KANBAN_COLUMNS, DISCARDED_COLUMN, groupIdeasByStatus, applyMove, formatStat, formatVolume, approvedIds,
+  KANBAN_COLUMNS, DISCARDED_COLUMN, groupIdeasByStatus, applyMove, formatStat, formatVolume, approvedIds, productTone, shortProductName,
 } from "@/lib/brain/kanban";
 
 describe("kanban columns", () => {
@@ -62,5 +62,23 @@ describe("approvedIds", () => {
   });
   it("returns [] when none are approved", () => {
     expect(approvedIds([{ id: "x", status: "NUOVA" }])).toEqual([]);
+  });
+});
+
+describe("productTone", () => {
+  it("is deterministic for the same product", () => {
+    expect(productTone("Bromelina Forte")).toBe(productTone("Bromelina Forte"));
+  });
+  it("returns a valid tone", () => {
+    expect(["sage", "amber", "green", "sky", "red", "stone"]).toContain(productTone("Lipostop"));
+  });
+});
+
+describe("shortProductName", () => {
+  it("takes the part before the pipe separator", () => {
+    expect(shortProductName("Bromelina Forte | Integratore drenante e anticellulite")).toBe("Bromelina Forte");
+  });
+  it("falls back to the full name when there is no pipe", () => {
+    expect(shortProductName("Lipostop")).toBe("Lipostop");
   });
 });
