@@ -5,7 +5,7 @@ const idea = { titolo: "Magnesio e stress", descrizione: "d", category: "EDUCATI
 
 describe("buildEmailPrompt", () => {
   it("PROMO includes the product catalog + JSON shape", () => {
-    const p = buildEmailPrompt({ kbContext: "kb", idea, formato: "PROMO_EMAIL", prodotti: [{ handle: "mg", titolo: "Magnesio Supremo", url: "https://x/products/mg", categoria: "Integratori", metafields: { posologia: "1/die" }, imageUrl: null }] });
+    const p = buildEmailPrompt({ kbContext: "kb", idea, formato: "PROMO_EMAIL", prodotti: [{ handle: "mg", titolo: "Magnesio Supremo", url: "https://x/products/mg", categoria: "Integratori", metafields: { posologia: "1/die" }, imageUrl: null, images: [] }] });
     expect(p).toContain("Magnesio Supremo");
     expect(p.toLowerCase()).toContain("vendita");
     expect(p.toLowerCase()).toContain("json");

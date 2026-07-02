@@ -40,4 +40,22 @@ describe("normalizeProducts", () => {
     expect(out).toHaveLength(1);
     expect(out[0].imageUrl).toBeNull();
   });
+  it("maps up to 3 gallery images", () => {
+    const raw = {
+      data: { products: { edges: [
+        { node: {
+          handle: "p", title: "P", productType: "T",
+          featuredImage: { url: "https://img/f.jpg" },
+          images: { edges: [ { node: { url: "https://img/1.jpg" } }, { node: { url: "https://img/2.jpg" } } ] },
+          metafields: { edges: [] },
+        } },
+      ] } },
+    };
+    const out = normalizeProducts(raw, "https://agocap.it");
+    expect(out[0].images).toEqual(["https://img/1.jpg", "https://img/2.jpg"]);
+  });
+  it("defaults images to [] when absent", () => {
+    const raw = { data: { products: { edges: [ { node: { handle: "n", title: "N", productType: "T", metafields: { edges: [] } } } ] } } };
+    expect(normalizeProducts(raw, "https://x")[0].images).toEqual([]);
+  });
 });

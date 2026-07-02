@@ -7,7 +7,7 @@ describe("mapShopProductToProduct", () => {
       handle: "magnesio-supremo", titolo: "Magnesio Supremo", url: "https://x/products/magnesio-supremo",
       categoria: "Integratori",
       metafields: { descrizione_seo: "Integratore di magnesio", ingredienti_dettagliati: "Magnesio citrato" },
-      imageUrl: null,
+      imageUrl: null, images: [],
     });
     expect(out).toEqual({
       handle: "magnesio-supremo", nome: "Magnesio Supremo", categoria: "Integratori",
@@ -15,7 +15,7 @@ describe("mapShopProductToProduct", () => {
     });
   });
   it("uses null for missing categoria/metafields", () => {
-    const out = mapShopProductToProduct({ handle: "x", titolo: "X", url: "u", categoria: "", metafields: {}, imageUrl: null });
+    const out = mapShopProductToProduct({ handle: "x", titolo: "X", url: "u", categoria: "", metafields: {}, imageUrl: null, images: [] });
     expect(out.categoria).toBeNull();
     expect(out.descrizione).toBeNull();
     expect(out.ingredienti).toBeNull();

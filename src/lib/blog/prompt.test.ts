@@ -6,7 +6,7 @@ describe("buildBlogPrompt", () => {
     const p = buildBlogPrompt({
       kbContext: "## Tono\nNaturale",
       idea: { keyword: "magnesio sonno", volumeRicerca: 1900, difficolta: 35, titolo: "Magnesio e sonno", descrizione: "d", category: "EDUCATIONAL" },
-      prodotti: [{ handle: "magnesio-supremo", titolo: "Magnesio Supremo", url: "https://x/products/magnesio-supremo", categoria: "Integratori", metafields: { posologia: "1/die" }, imageUrl: null }],
+      prodotti: [{ handle: "magnesio-supremo", titolo: "Magnesio Supremo", url: "https://x/products/magnesio-supremo", categoria: "Integratori", metafields: { posologia: "1/die" }, imageUrl: null, images: [] }],
       seo: { keywordPrincipale: "magnesio sonno", keywordSecondarie: ["magnesio stress"] },
     });
     expect(p).toContain("magnesio sonno");
