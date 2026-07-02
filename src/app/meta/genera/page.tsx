@@ -42,9 +42,12 @@ function GeneraInner() {
           <option value="">Scegli un'idea approvata…</option>
           {ideas.map((i) => <option key={i.id} value={i.id}>{i.titolo}</option>)}
         </select>
-        <select className="w-full rounded border p-2" value={form.formato} onChange={(e) => setForm({ ...form, formato: e.target.value })}>
-          {CONTENT_FORMATS.map((c) => <option key={c} value={c}>{c}</option>)}
-        </select>
+        <label className="block text-sm">
+          <span className="mb-1 block font-medium text-ink-soft">Formato</span>
+          <select className="w-full rounded border p-2" value={form.formato} onChange={(e) => setForm({ ...form, formato: e.target.value })}>
+            {CONTENT_FORMATS.map((c) => <option key={c} value={c}>{c === "POST" ? "POST (immagine singola)" : c === "CAROSELLO" ? "CAROSELLO (più slide)" : c}</option>)}
+          </select>
+        </label>
         <div className="flex gap-3 text-sm">
           {META_PLATFORMS.map((p) => (
             <label key={p} className="flex items-center gap-1">
