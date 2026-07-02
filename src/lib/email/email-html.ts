@@ -26,17 +26,19 @@ function imageRow(src: string): string {
 
 export function injectImagesBetweenParagraphs(paragraphs: string[], images: string[]): string[] {
   const imgs = (images ?? []).slice(0, 3);
+  const n = paragraphs.length;
+  if (n === 0) return imgs.map((src) => imageRow(src));
+  // Insert each image after an evenly-spread paragraph index (0-based).
+  const afterIndex = imgs.map((_, j) =>
+    Math.min(n - 1, Math.max(0, Math.round(((j + 1) * n) / (imgs.length + 1)) - 1)),
+  );
   const rows: string[] = [];
-  const step = imgs.length > 0 ? Math.max(1, Math.floor(paragraphs.length / (imgs.length + 1))) : 0;
-  let placed = 0;
   paragraphs.forEach((p, i) => {
     rows.push(`<tr><td ${TD_TEXT}>${p}</td></tr>`);
-    if (step > 0 && placed < imgs.length && (i + 1) % step === 0 && i < paragraphs.length - 1) {
-      rows.push(imageRow(imgs[placed]));
-      placed++;
-    }
+    afterIndex.forEach((idx, j) => {
+      if (idx === i) rows.push(imageRow(imgs[j]));
+    });
   });
-  while (placed < imgs.length) { rows.push(imageRow(imgs[placed])); placed++; }
   return rows;
 }
 

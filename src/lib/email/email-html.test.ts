@@ -24,6 +24,13 @@ describe("injectImagesBetweenParagraphs", () => {
   it("no images -> no <img>", () => {
     expect(injectImagesBetweenParagraphs(["<p>1</p>"], []).join("")).not.toContain("<img");
   });
+  it("spreads images across the body, not all front-loaded", () => {
+    const paras = ["<p>0</p>","<p>1</p>","<p>2</p>","<p>3</p>","<p>4</p>","<p>5</p>","<p>6</p>"];
+    const html = injectImagesBetweenParagraphs(paras, ["i0","i1","i2"]).join("");
+    const idxP4 = html.indexOf("<p>4</p>");
+    const idxLastImg = html.lastIndexOf('src="i2"');
+    expect(idxLastImg).toBeGreaterThan(idxP4);
+  });
 });
 
 describe("assembleEmailHtml", () => {
