@@ -57,13 +57,23 @@ export async function fetchProductsWithMetafields(): Promise<ShopProduct[]> {
   const shop = process.env.SHOPIFY_SHOP_DOMAIN;
   const token = process.env.SHOPIFY_ADMIN_TOKEN;
   if (!shop || !token) throw new Error("SHOPIFY_SHOP_DOMAIN o SHOPIFY_ADMIN_TOKEN mancante");
-  const query = `{ products(first: 50) { edges { node { handle title productType featuredImage { url } images(first: 3) { edges { node { url } } } metafields(first: 30) { edges { node { key value } } } } } } }`;
-  const res = await fetch(`https://${shop}/admin/api/${API_VERSION}/graphql.json`, {
-    method: "POST",
-    headers: { "X-Shopify-Access-Token": token, "Content-Type": "application/json", Accept: "application/json" },
-    body: JSON.stringify({ query }),
-  });
-  if (!res.ok) throw new Error(`Shopify HTTP ${res.status}`);
-  const json = await res.json();
-  return normalizeProducts(json, storeUrl());
+  const url = storeUrl();
+  const out: ShopProduct[] = [];
+  let after: string | null = null;
+  // Paginate through the full catalog (Shopify caps `first` at 250 per page). Safety cap: 40 pages.
+  for (let page = 0; page < 40; page++) {
+    const query = `query($after: String) { products(first: 250, after: $after) { pageInfo { hasNextPage endCursor } edges { node { handle title productType featuredImage { url } images(first: 3) { edges { node { url } } } metafields(first: 30) { edges { node { key value } } } } } } }`;
+    const res: Response = await fetch(`https://${shop}/admin/api/${API_VERSION}/graphql.json`, {
+      method: "POST",
+      headers: { "X-Shopify-Access-Token": token, "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({ query, variables: { after } }),
+    });
+    if (!res.ok) throw new Error(`Shopify HTTP ${res.status}`);
+    const json = await res.json();
+    out.push(...normalizeProducts(json, url));
+    const pageInfo = (json as { data?: { products?: { pageInfo?: { hasNextPage?: boolean; endCursor?: string | null } } } })?.data?.products?.pageInfo;
+    if (!pageInfo?.hasNextPage || !pageInfo.endCursor) break;
+    after = pageInfo.endCursor;
+  }
+  return out;
 }
