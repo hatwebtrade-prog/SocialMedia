@@ -6,7 +6,7 @@ import { publishBlogContent, type BlogPublishDeps } from "@/lib/blog/publish";
 import { publishArticle } from "@/lib/shopify/publish";
 import { readAssetBase64 } from "@/lib/image/store";
 import { assembleArticleHtml } from "@/lib/blog/article-html";
-import type { ProductCards } from "@/lib/blog/product-cards";
+import { resolveBlogProductCards } from "@/lib/blog/resolve-cards";
 import { getDepsFactory } from "./deps-registry";
 
 type Ctx = { params: Promise<{ id: string }> };
@@ -25,7 +25,7 @@ function buildDeps(): BlogPublishDeps {
       const p = (c.payload ?? {}) as {
         titoloSeo?: string; corpoHtml?: string; jsonLd?: string;
         puntiChiave?: string[]; faq?: { domanda: string; risposta: string }[]; cta?: string;
-        productCards?: ProductCards;
+        prodotti?: { handle: string }[];
       };
       const asset = c.assets[0];
       let headerSrc: string | null = null;
@@ -39,7 +39,8 @@ function buildDeps(): BlogPublishDeps {
           headerSrc = `data:image/jpeg;base64,${slim.toString("base64")}`;
         }
       }
-      const corpoHtml = assembleArticleHtml(p, { headerSrc, cards: p.productCards });
+      const cards = await resolveBlogProductCards(c.ideaId, (p.prodotti ?? []).map((x) => x.handle));
+      const corpoHtml = assembleArticleHtml(p, { headerSrc, cards });
       return { titoloSeo: p.titoloSeo ?? "Articolo", corpoHtml, jsonLd: p.jsonLd, imageBase64: undefined };
     },
     publish: async ({ blogId, blogHandle, title, bodyHtml, imageBase64, published }) => {

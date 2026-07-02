@@ -9,7 +9,7 @@ import { fetchProductsWithMetafields } from "@/lib/shopify/products";
 import { buildBlogPrompt, type BlogIdea } from "./prompt";
 import { scrubBlogPayload } from "./competitors";
 import { blogArticleSchema } from "./schema";
-import { buildProductCards, type ProductRec } from "./product-cards";
+import { resolveBlogProductCards } from "./resolve-cards";
 import type { BlogDeps, BlogClaudeResult } from "./generate";
 
 /** Maps SEOZoom related keywords to secondary keyword strings, dropping the principal and capping. */
@@ -19,22 +19,6 @@ export function deriveSecondaryKeywords(principal: string, related: NormalizedKe
     .map((k) => k.keyword)
     .filter((k) => k.trim().toLowerCase() !== p)
     .slice(0, cap);
-}
-
-async function resolveProductCards(ideaId: string) {
-  const idea = await prisma.idea.findUnique({ where: { id: ideaId }, include: { product: true } });
-  const main = (idea?.product ?? null) as ProductRec | null;
-  const sameCategory = main?.categoria
-    ? ((await prisma.product.findMany({ where: { categoria: main.categoria, attivo: true, NOT: { id: main.id } } })) as ProductRec[])
-    : [];
-  let shopifyByHandle: Record<string, { imageUrl: string | null; url: string }> = {};
-  try {
-    const prodotti = await fetchProductsWithMetafields();
-    shopifyByHandle = Object.fromEntries(prodotti.map((p) => [p.handle, { imageUrl: p.imageUrl, url: p.url }]));
-  } catch (err) {
-    console.error("Shopify immagini prodotto non disponibili per le card:", err instanceof Error ? err.message : err);
-  }
-  return buildProductCards({ main, sameCategory, shopifyByHandle });
 }
 
 export function buildBlogDeps(): BlogDeps {
@@ -95,7 +79,8 @@ export function buildBlogDeps(): BlogDeps {
     },
 
     persist: async ({ input, payload, claude }) => {
-      const productCards = await resolveProductCards(input.ideaId);
+      const aiHandles = ((payload as { prodotti?: { handle: string }[] }).prodotti ?? []).map((p) => p.handle);
+      const productCards = await resolveBlogProductCards(input.ideaId, aiHandles);
       const enrichedPayload = { ...(payload as object), productCards };
       const content = await prisma.generatedContent.create({
         data: {
