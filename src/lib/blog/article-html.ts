@@ -104,7 +104,7 @@ export function injectAtMidpoint(html: string, block: string): string {
 
 export function assembleArticleHtml(payload: BlogPayloadLike, opts: AssembleOpts = {}): string {
   const cards = opts.cards;
-  const header = opts.headerSrc ? `<img class="ag-header" src="${escapeHtml(opts.headerSrc)}" style="display:block;width:100%;height:auto;border-radius:16px;margin:0 auto 24px;" alt="">` : "";
+  const header = opts.headerSrc ? `<img class="ag-header" src="${escapeHtml(opts.headerSrc)}" style="display:block;height:auto;width:min(1000px,92vw);position:relative;left:50%;transform:translateX(-50%);border-radius:16px;margin:8px 0 28px;" alt="">` : "";
   let body = payload.corpoHtml ?? "";
   if (cards?.main) body = injectAtMidpoint(body, mainCardHtml(cards.main));
   const inner = [
