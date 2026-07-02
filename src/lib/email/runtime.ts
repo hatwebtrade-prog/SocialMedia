@@ -4,9 +4,32 @@ import { buildKbContext } from "@/lib/brain/context";
 import { stripFences } from "@/lib/meta/runtime";
 import { loadKnowledgeKbItems } from "@/lib/knowledge/items";
 import { fetchProductsWithMetafields } from "@/lib/shopify/products";
+import { buildProductCards, type ProductRec } from "@/lib/blog/product-cards";
 import { buildEmailPrompt, type EmailIdea } from "./prompt";
 import { emailSchema } from "./schema";
 import type { EmailDeps, EmailClaudeResult } from "./generate";
+
+async function resolveEmailBlocks(ideaId: string) {
+  try {
+    const idea = await prisma.idea.findUnique({ where: { id: ideaId }, include: { product: true } });
+    const main = (idea?.product ?? null) as ProductRec | null;
+    if (!main) return { productImages: [], crossSell: [] };
+    let shop: Awaited<ReturnType<typeof fetchProductsWithMetafields>> = [];
+    try { shop = await fetchProductsWithMetafields(); } catch (err) {
+      console.error("Shopify non disponibile per i blocchi email:", err instanceof Error ? err.message : err);
+    }
+    const mainShop = main.handle ? shop.find((p) => p.handle === main.handle) : undefined;
+    const productImages = (mainShop?.images?.length ? mainShop.images : (mainShop?.imageUrl ? [mainShop.imageUrl] : [])).slice(0, 3);
+    const sameCategory = main.categoria
+      ? ((await prisma.product.findMany({ where: { categoria: main.categoria, attivo: true, NOT: { id: main.id } } })) as ProductRec[])
+      : [];
+    const shopifyByHandle = Object.fromEntries(shop.map((p) => [p.handle, { imageUrl: p.imageUrl, url: p.url }]));
+    const crossSell = buildProductCards({ main: null, sameCategory, shopifyByHandle }).related.map((c) => ({ nome: c.nome, url: c.url, imageUrl: c.imageUrl }));
+    return { productImages, crossSell };
+  } catch {
+    return { productImages: [], crossSell: [] };
+  }
+}
 
 export function buildEmailDeps(): EmailDeps {
   return {
@@ -52,13 +75,15 @@ export function buildEmailDeps(): EmailDeps {
     },
 
     persist: async ({ input, result }) => {
+      const emailBlocks = await resolveEmailBlocks(input.ideaId);
+      const enrichedPayload = { ...(result.payload as object), emailBlocks };
       const content = await prisma.generatedContent.create({
         data: {
           ideaId: input.ideaId,
           canale: "EMAIL",
           formato: input.formato as never,
           status: "BOZZA",
-          payload: result.payload as object,
+          payload: enrichedPayload as object,
           promptUsato: result.promptUsato,
           modello: result.modello,
           inputTokens: result.inputTokens,
