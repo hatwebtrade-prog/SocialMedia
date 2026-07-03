@@ -63,6 +63,7 @@ export async function higgsfieldVideo(
     }
     await sleep(3000);
     const st = await fetch(statusUrl, { headers: { Authorization: auth } });
+    if (!st.ok) throw new Error(`Higgsfield video status HTTP ${st.status}`);
     job = await st.json().catch(() => ({}));
   }
   throw new Error("Higgsfield video: timeout");
