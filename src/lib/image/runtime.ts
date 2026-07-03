@@ -101,11 +101,12 @@ function sharedImageDeps(): Pick<
     overlayLogo: (imageBuf, logoBuf) => overlayLogo(imageBuf, logoBuf),
     dominantColor: (imageBuf) => dominantColorHex(imageBuf),
     resolveSocialCopy: async (contentId, slideIndex, productName) => {
-      const content = await prisma.generatedContent.findUnique({ where: { id: contentId }, include: { idea: true } });
-      if (!content) return null;
-      const payload = (content.payload ?? {}) as { slides?: { testo: string }[]; caption?: string; ideaCreativa?: string };
-      const testo = slideIndex != null ? (payload.slides?.[slideIndex]?.testo ?? "") : (payload.caption ?? payload.ideaCreativa ?? "");
+      // Any failure here (DB read, Claude, parse) degrades gracefully to null → image without text.
       try {
+        const content = await prisma.generatedContent.findUnique({ where: { id: contentId }, include: { idea: true } });
+        if (!content) return null;
+        const payload = (content.payload ?? {}) as { slides?: { testo: string }[]; caption?: string; ideaCreativa?: string };
+        const testo = slideIndex != null ? (payload.slides?.[slideIndex]?.testo ?? "") : (payload.caption ?? payload.ideaCreativa ?? "");
         const claude = getClaude();
         const res = await claude.messages.create({
           model: BRAINSTORM_MODEL,

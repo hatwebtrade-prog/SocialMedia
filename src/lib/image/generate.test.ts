@@ -119,4 +119,17 @@ describe("generateImageAsset", () => {
     expect(deps.overlayLogo).toHaveBeenCalled();
     expect((deps.persistAsset as any).mock.calls[0][0].bytes.toString()).toBe("withlogo");
   });
+
+  it("includes the AI copy in the social prompt when includiDescrizione is on", async () => {
+    const deps = makeDeps({ loadProduct: vi.fn().mockResolvedValue({ nome: "Biotina" }), loadMockup: vi.fn().mockResolvedValue(Buffer.from("m")), resolveSocialCopy: vi.fn().mockResolvedValue({ titolo: "TITOLO MARKER", bullets: ["b1"] }) });
+    await generateImageAsset({ contentId: "c1", slideIndex: 0, productId: "p1", social: true, includiDescrizione: true }, deps as any);
+    expect(deps.resolveSocialCopy).toHaveBeenCalled();
+    expect((deps.callOpenAI as any).mock.calls[0][0]).toContain("TITOLO MARKER");
+  });
+
+  it("skips the logo overlay when no logo file exists", async () => {
+    const deps = makeDeps({ loadProduct: vi.fn().mockResolvedValue({ nome: "X" }), loadMockup: vi.fn().mockResolvedValue(Buffer.from("m")), loadLogo: vi.fn().mockReturnValue(null) });
+    await generateImageAsset({ contentId: "c1", slideIndex: 0, productId: "p1", social: true, includiLogo: true }, deps as any);
+    expect(deps.overlayLogo).not.toHaveBeenCalled();
+  });
 });
