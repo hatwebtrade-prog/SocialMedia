@@ -7,8 +7,9 @@ import { ImageBriefForm, type Brief } from "@/components/image-brief";
 import { ProductMockupPicker, type ProductMockupValue } from "@/components/product-mockup-picker";
 import { MetaPublishButton } from "@/components/meta-publish-button";
 import { LogoUploader } from "@/components/logo-uploader";
+import { GenerationProgress } from "@/components/generation-progress";
 
-interface Asset { id: string; slideIndex: number | null; }
+interface Asset { id: string; slideIndex: number | null; tipo: string; }
 interface Content {
   id: string;
   formato: string;
@@ -29,6 +30,7 @@ export default function MetaContentDetail() {
   const { id } = useParams<{ id: string }>();
   const [c, setC] = useState<Content | null>(null);
   const [busyImg, setBusyImg] = useState<string | null>(null);
+  const [busyVid, setBusyVid] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [products, setProducts] = useState<{ id: string; nome: string; imagePath: string | null }[]>([]);
   const [provider, setProvider] = useState("GPT");
@@ -90,8 +92,20 @@ export default function MetaContentDetail() {
     if (res.ok) await load(); else setMsg(`Errore upload: ${json.error ?? "sconosciuto"}`);
   };
 
+  const genVideo = async (slideIndex: number | null) => {
+    setBusyVid(String(slideIndex)); setMsg(null);
+    const res = await fetch(`/api/meta/contents/${id}/video`, {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ slideIndex }),
+    });
+    setBusyVid(null);
+    if (!res.ok) { const e = await res.json().catch(() => ({})); setMsg(e.error ?? "Errore generazione video"); return; }
+    await load();
+  };
+
   if (!c) return <p>Caricamento…</p>;
-  const assetFor = (slideIndex: number | null) => c.assets.find((a) => a.slideIndex === slideIndex);
+  const assetFor = (slideIndex: number | null) => c.assets.find((a) => a.slideIndex === slideIndex && a.tipo === "IMMAGINE");
+  const videoAssetFor = (slideIndex: number | null) => c.assets.find((a) => a.slideIndex === slideIndex && a.tipo === "VIDEO");
   const p = c.payload ?? {};
 
   return (
@@ -171,6 +185,14 @@ export default function MetaContentDetail() {
             <button onClick={() => genImage(null)} disabled={busyImg === "null"} className="rounded bg-emerald-600 px-3 py-1 text-sm text-white disabled:opacity-40">{busyImg === "null" ? "Genero…" : "Genera immagine"}</button>
           </>
         )}
+        <div className="mt-3">
+          <div className="mb-1 text-sm font-medium">Video</div>
+          {videoAssetFor(null) ? (
+            <video src={`/api/assets/${videoAssetFor(null)!.id}`} controls className="mb-2 w-64 rounded border" />
+          ) : <p className="text-xs text-neutral-500">Nessun video. Richiede un&apos;immagine già generata.</p>}
+          <button onClick={() => genVideo(null)} disabled={busyVid === "null"} className="rounded bg-violet-600 px-3 py-1 text-sm text-white disabled:opacity-40">{busyVid === "null" ? "Genero video…" : "Genera video"}</button>
+          <GenerationProgress running={busyVid === "null"} estimatedMs={180000} label="Generazione video" />
+        </div>
       </div>
 
       {c.formato === "CAROSELLO" && (p.slides ?? []).map((s, idx) => (
@@ -194,6 +216,14 @@ export default function MetaContentDetail() {
               <button onClick={() => genImage(idx)} disabled={busyImg === `${idx}`} className="rounded bg-emerald-600 px-3 py-1 text-sm text-white disabled:opacity-40">{busyImg === `${idx}` ? "Genero…" : "Genera immagine slide"}</button>
             </>
           )}
+          <div className="mt-3">
+            <div className="mb-1 text-sm font-medium">Video</div>
+            {videoAssetFor(idx) ? (
+              <video src={`/api/assets/${videoAssetFor(idx)!.id}`} controls className="mb-2 w-48 rounded border" />
+            ) : <p className="text-xs text-neutral-500">Nessun video. Richiede un&apos;immagine già generata.</p>}
+            <button onClick={() => genVideo(idx)} disabled={busyVid === `${idx}`} className="rounded bg-violet-600 px-3 py-1 text-sm text-white disabled:opacity-40">{busyVid === `${idx}` ? "Genero video…" : "Genera video slide"}</button>
+            <GenerationProgress running={busyVid === `${idx}`} estimatedMs={180000} label="Generazione video" />
+          </div>
         </div>
       ))}
 
