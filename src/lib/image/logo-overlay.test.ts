@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { logoPlacement } from "@/lib/image/logo-overlay";
+import sharp from "sharp";
+import { logoPlacement, overlayLogo } from "@/lib/image/logo-overlay";
 
 describe("logoPlacement", () => {
   it("places the logo top-right respecting width% and margin%", () => {
@@ -16,5 +17,21 @@ describe("logoPlacement", () => {
     expect(p.height).toBe(2); // 16/10 rounded
     expect(p.left).toBeGreaterThanOrEqual(0);
     expect(p.top).toBeGreaterThanOrEqual(0);
+  });
+});
+
+describe("overlayLogo", () => {
+  it("returns a composited PNG the same size as the base image", async () => {
+    const image = await sharp({ create: { width: 100, height: 100, channels: 3, background: { r: 255, g: 255, b: 255 } } }).png().toBuffer();
+    const logo = await sharp({ create: { width: 40, height: 10, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 1 } } }).png().toBuffer();
+    const out = await overlayLogo(image, logo);
+    const meta = await sharp(out).metadata();
+    expect(meta.width).toBe(100);
+    expect(meta.format).toBe("png");
+  });
+  it("returns the original image unchanged on a corrupt logo", async () => {
+    const image = await sharp({ create: { width: 50, height: 50, channels: 3, background: { r: 1, g: 2, b: 3 } } }).png().toBuffer();
+    const out = await overlayLogo(image, Buffer.from("notanimage"));
+    expect(out).toBe(image);
   });
 });

@@ -17,15 +17,20 @@ export function logoPlacement(
   return { left, top, width, height };
 }
 
-/** Composites the logo onto the image (top-right). Never throws to the caller on a bad logo. */
+/** Composites the logo onto the image (top-right). On any failure (e.g. a corrupt logo) it returns
+ *  the original image unchanged, so a bad logo never fails the whole image generation. */
 export async function overlayLogo(imageBuf: Buffer, logoBuf: Buffer): Promise<Buffer> {
-  const img = sharp(imageBuf);
-  const meta = await img.metadata();
-  const imgW = meta.width ?? 1024;
-  const imgH = meta.height ?? 1024;
-  const logoMeta = await sharp(logoBuf).metadata();
-  const ratio = (logoMeta.width ?? 4) / (logoMeta.height ?? 1);
-  const p = logoPlacement(imgW, imgH, ratio);
-  const resizedLogo = await sharp(logoBuf).resize(p.width, p.height, { fit: "inside" }).png().toBuffer();
-  return img.composite([{ input: resizedLogo, left: p.left, top: p.top }]).png().toBuffer();
+  try {
+    const img = sharp(imageBuf);
+    const meta = await img.metadata();
+    const imgW = meta.width ?? 1024;
+    const imgH = meta.height ?? 1024;
+    const logoMeta = await sharp(logoBuf).metadata();
+    const ratio = (logoMeta.width ?? 4) / (logoMeta.height ?? 1);
+    const p = logoPlacement(imgW, imgH, ratio);
+    const resizedLogo = await sharp(logoBuf).resize(p.width, p.height, { fit: "inside" }).png().toBuffer();
+    return await img.composite([{ input: resizedLogo, left: p.left, top: p.top }]).png().toBuffer();
+  } catch {
+    return imageBuf;
+  }
 }
