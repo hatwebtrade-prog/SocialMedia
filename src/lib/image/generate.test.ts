@@ -7,6 +7,10 @@ function makeDeps(overrides = {}) {
     loadMockup: vi.fn().mockResolvedValue(Buffer.from("mockbytes")),
     callOpenAI: vi.fn().mockResolvedValue(Buffer.from("fakepng")),
     persistAsset: vi.fn().mockResolvedValue({ assetId: "asset_1" }),
+    dominantColor: vi.fn().mockResolvedValue("#c81478"),
+    loadLogo: vi.fn().mockReturnValue(null),
+    overlayLogo: vi.fn(async (b: Buffer) => b),
+    resolveSocialCopy: vi.fn().mockResolvedValue({ titolo: "T", bullets: ["a"] }),
     ...overrides,
   };
 }
@@ -103,5 +107,16 @@ describe("generateImageAsset", () => {
     await generateImageAsset({ contentId: "c1", slideIndex: null, brief: { formato: "verticale" } }, deps as any);
     const opts = (deps.callOpenAI as any).mock.calls[0][3];
     expect(opts.openaiSize).toBe("1024x1536");
+  });
+
+  it("uses the branded social template for Meta (social=true) and overlays the logo when requested", async () => {
+    const logo = Buffer.from("logo");
+    const deps = makeDeps({ loadProduct: vi.fn().mockResolvedValue({ nome: "Biotina" }), loadMockup: vi.fn().mockResolvedValue(Buffer.from("m")), loadLogo: vi.fn().mockReturnValue(logo), overlayLogo: vi.fn(async () => Buffer.from("withlogo")) });
+    const res = await generateImageAsset({ contentId: "c1", slideIndex: 0, productId: "p1", social: true, includiLogo: true, influencer: false }, deps as any);
+    expect(res.status).toBe("DONE");
+    const prompt = (deps.callOpenAI as any).mock.calls[0][0] as string;
+    expect(prompt).toContain("AGOCAP");
+    expect(deps.overlayLogo).toHaveBeenCalled();
+    expect((deps.persistAsset as any).mock.calls[0][0].bytes.toString()).toBe("withlogo");
   });
 });

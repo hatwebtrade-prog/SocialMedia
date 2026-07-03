@@ -1,6 +1,7 @@
 import { buildImagePrompt, cleanSlide } from "./prompt";
 import { buildArchetypePrompt, type ImageArchetype, type ProductPromptData } from "./archetypes";
 import { buildImagePromptFromBrief, isBriefEmpty, briefDimensions, type ImageBrief } from "./brief";
+import { buildSocialTemplatePrompt } from "./social-template";
 import type { ImageProvider } from "./providers";
 import { buildBrandVisualContext } from "@/lib/knowledge/brand-context";
 
@@ -17,6 +18,11 @@ export interface ImageGenInput {
   ideaCreativa?: string;
   archetype?: ImageArchetype;
   headline?: string;
+  /** Meta-only: use the branded social template prompt + toggles below. */
+  social?: boolean;
+  includiDescrizione?: boolean;
+  includiLogo?: boolean;
+  influencer?: boolean;
 }
 
 export interface ImageDeps {
@@ -27,6 +33,10 @@ export interface ImageDeps {
   ensureHiggsfieldRef?: (productId: string) => Promise<string | null>;
   loadBrandVisual?: () => Promise<import("@/lib/knowledge/brand-context").BrandVisualData | null>;
   loadProduct?: (productId: string) => Promise<ProductPromptData | null>;
+  resolveSocialCopy?: (contentId: string, slideIndex: number | null, productName?: string | null) => Promise<{ titolo: string; bullets: string[] } | null>;
+  dominantColor?: (imageBuf: Buffer) => Promise<string | null>;
+  loadLogo?: () => Buffer | null;
+  overlayLogo?: (imageBuf: Buffer, logoBuf: Buffer) => Promise<Buffer>;
 }
 
 export interface ImageGenResult {
@@ -53,7 +63,22 @@ export async function generateImageAsset(
     const brandVisual = brandProfile ? buildBrandVisualContext(brandProfile, provider) : undefined;
     const product = input.productId && deps.loadProduct ? await deps.loadProduct(input.productId) : null;
     let prompt: string;
-    if (provider === "GPT" && product) {
+    if (input.social && provider === "GPT") {
+      const accentHex = mockup && deps.dominantColor ? await deps.dominantColor(mockup) : null;
+      const copy =
+        input.includiDescrizione && deps.resolveSocialCopy
+          ? await deps.resolveSocialCopy(input.contentId, input.slideIndex, product?.nome ?? null)
+          : null;
+      prompt = buildSocialTemplatePrompt({
+        variant: (input.slideIndex ?? 0) === 0 ? "MAIN" : "SECONDARY",
+        influencer: !!input.influencer,
+        productName: product?.nome ?? null,
+        hasMockup: !!mockup,
+        accentHex,
+        copy,
+        brandVisual,
+      });
+    } else if (provider === "GPT" && product) {
       prompt = buildArchetypePrompt(input.archetype ?? "ADV", {
         product,
         brandVisual,
@@ -79,7 +104,11 @@ export async function generateImageAsset(
     if (provider === "HIGGSFIELD" && input.useMockup && input.productId && deps.ensureHiggsfieldRef) {
       customReferenceId = (await deps.ensureHiggsfieldRef(input.productId)) ?? undefined;
     }
-    const bytes = await deps.callOpenAI(prompt, mockup ?? undefined, provider, { styleId, soulSize, openaiSize, customReferenceId });
+    let bytes = await deps.callOpenAI(prompt, mockup ?? undefined, provider, { styleId, soulSize, openaiSize, customReferenceId });
+    if (input.includiLogo && deps.loadLogo && deps.overlayLogo) {
+      const logo = deps.loadLogo();
+      if (logo) bytes = await deps.overlayLogo(bytes, logo);
+    }
     const { assetId } = await deps.persistAsset({ input, prompt, bytes });
     return { status: "DONE", assetId };
   } catch (err) {

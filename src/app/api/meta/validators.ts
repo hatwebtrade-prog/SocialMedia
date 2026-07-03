@@ -40,4 +40,8 @@ export const imageInputSchema = z.object({
   ideaCreativa: z.string().optional(),
   archetype: z.enum(["UGC", "ADV", "PRODUCT_HERO"]).optional(),
   headline: z.string().optional(),
+  social: z.boolean().optional(),
+  includiDescrizione: z.boolean().optional(),
+  includiLogo: z.boolean().optional(),
+  influencer: z.boolean().optional(),
 });
