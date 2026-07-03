@@ -18,8 +18,14 @@ export async function GET(_req: Request, { params }: Ctx) {
   } catch {
     return NextResponse.json({ error: "File non leggibile" }, { status: 404 });
   }
+  const lower = asset.path.toLowerCase();
+  const contentType = lower.endsWith(".mp4")
+    ? "video/mp4"
+    : lower.endsWith(".webm")
+      ? "video/webm"
+      : "image/png";
   return new NextResponse(new Uint8Array(bytes), {
     status: 200,
-    headers: { "content-type": "image/png", "cache-control": "private, max-age=60" },
+    headers: { "content-type": contentType, "cache-control": "private, max-age=60" },
   });
 }

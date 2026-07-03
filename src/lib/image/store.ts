@@ -12,6 +12,15 @@ export function saveAssetFile(contentId: string, assetId: string, bytes: Buffer)
   return path.relative(process.cwd(), abs).replace(/\\/g, "/");
 }
 
+/** Writes MP4 bytes to uploads/<contentId>/<assetId>.mp4 and returns the repo-relative POSIX path. */
+export function saveVideoAssetFile(contentId: string, assetId: string, bytes: Buffer): string {
+  const dir = path.join(UPLOADS_DIR, contentId);
+  mkdirSync(dir, { recursive: true });
+  const abs = path.join(dir, `${assetId}.mp4`);
+  writeFileSync(abs, bytes);
+  return path.relative(process.cwd(), abs).replace(/\\/g, "/");
+}
+
 /** Deletes a stored file given its repo-relative path. Best-effort. No-op for empty/unsafe paths. */
 export function deleteAssetFile(relPath: string): void {
   if (!relPath || !relPath.trim()) return;
