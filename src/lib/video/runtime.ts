@@ -2,7 +2,7 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { prisma } from "@/lib/prisma";
 import { higgsfieldVideo } from "@/lib/image/providers/higgsfield-video";
-import { saveVideoAssetFile } from "@/lib/image/store";
+import { saveVideoAssetFile, deleteAssetFile } from "@/lib/image/store";
 import type { VideoDeps } from "./generate";
 
 export function buildVideoDeps(): VideoDeps {
@@ -28,7 +28,10 @@ export function buildVideoDeps(): VideoDeps {
     callVideo: (imageBuf, prompt) => higgsfieldVideo(imageBuf, prompt),
     persistVideo: async ({ input, prompt, bytes }) => {
       const existing = await prisma.generatedAsset.findFirst({ where: { contentId: input.contentId, slideIndex: input.slideIndex, tipo: "VIDEO" } });
-      if (existing) await prisma.generatedAsset.delete({ where: { id: existing.id } });
+      if (existing) {
+        if (existing.path) deleteAssetFile(existing.path);
+        await prisma.generatedAsset.delete({ where: { id: existing.id } });
+      }
       const asset = await prisma.generatedAsset.create({
         data: { contentId: input.contentId, slideIndex: input.slideIndex, tipo: "VIDEO", prompt, modello: "higgsfield/dop", path: "" },
       });
