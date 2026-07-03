@@ -14,10 +14,10 @@ export function buildSocialTemplatePrompt(args: SocialTemplateArgs): string {
     : "Palette pulita e naturale coerente col brand.";
   const person = args.influencer
     ? "Includi un influencer/persona reale, sorridente, che tiene il prodotto in mano in modo naturale (stile UGC premium)."
-    : "NESSUNA persona, nessun volto: composizione grafica elegante del prodotto (packshot) con forme, icone e spazio.";
+    : "NESSUNA persona, nessun volto.";
   const product = args.hasMockup
     ? "Usa il prodotto fornito come riferimento ESATTO del packaging: identico a etichetta, colori, logo e testo; non ridisegnarlo."
-    : "";
+    : "Non mostrare né inventare alcun prodotto, packaging, bottiglia, barattolo, etichetta o logo inesistente: usa una composizione grafica/astratta con forme, icone e colori del brand. Nessun brand o prodotto falso.";
   const richness =
     args.variant === "MAIN"
       ? "Layout ricco: titolo grande e leggibile in alto, prodotto in evidenza, eventuali icone circolari con brevi benefici."

@@ -28,6 +28,13 @@ describe("buildSocialTemplatePrompt", () => {
     expect(main).toContain("titolo grande");
     expect(sec).toContain("sobria");
   });
+  it("forbids inventing a product/packshot when there is no mockup", () => {
+    const noMock = buildSocialTemplatePrompt({ variant: "MAIN", influencer: false, productName: "Biotina", hasMockup: false });
+    expect(noMock.toLowerCase()).toContain("non mostrare né inventare");
+    const withMock = buildSocialTemplatePrompt({ variant: "MAIN", influencer: false, productName: "Biotina", hasMockup: true });
+    expect(withMock).toContain("riferimento ESATTO");
+  });
+
   it("always forbids collage and fake brands", () => {
     const p = buildSocialTemplatePrompt({ ...base, variant: "MAIN", influencer: false });
     expect(p.toLowerCase()).toContain("non un collage");
