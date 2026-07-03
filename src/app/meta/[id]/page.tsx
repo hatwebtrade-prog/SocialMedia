@@ -6,6 +6,7 @@ import { CONTENT_STATUSES } from "@/lib/meta/enums";
 import { ImageBriefForm, type Brief } from "@/components/image-brief";
 import { ProductMockupPicker, type ProductMockupValue } from "@/components/product-mockup-picker";
 import { MetaPublishButton } from "@/components/meta-publish-button";
+import { LogoUploader } from "@/components/logo-uploader";
 
 interface Asset { id: string; slideIndex: number | null; }
 interface Content {
@@ -42,6 +43,11 @@ export default function MetaContentDetail() {
   const valueFor = (slideIndex: number | null): ProductMockupValue => perImage[keyFor(slideIndex)] ?? { productId: "", useMockup: false };
   const setValueFor = (slideIndex: number | null, next: ProductMockupValue) => setPerImage((prev) => ({ ...prev, [keyFor(slideIndex)]: next }));
 
+  const [imgOpts, setImgOpts] = useState<Record<string, { includiDescrizione: boolean; includiLogo: boolean; influencer: boolean }>>({});
+  const optsFor = (slideIndex: number | null) => imgOpts[keyFor(slideIndex)] ?? { includiDescrizione: false, includiLogo: false, influencer: false };
+  const setOptsFor = (slideIndex: number | null, patchObj: Partial<{ includiDescrizione: boolean; includiLogo: boolean; influencer: boolean }>) =>
+    setImgOpts((m) => ({ ...m, [keyFor(slideIndex)]: { ...optsFor(slideIndex), ...patchObj } }));
+
   const load = useCallback(async () => {
     const res = await fetch(`/api/meta/contents/${id}`);
     setC(await res.json());
@@ -58,7 +64,12 @@ export default function MetaContentDetail() {
     const v = valueFor(slideIndex);
     const res = await fetch(`/api/meta/contents/${id}/image`, {
       method: "POST", headers: { "content-type": "application/json" },
-      body: JSON.stringify({ slideIndex, productId: v.productId || undefined, useMockup: v.useMockup && !!v.productId, provider, brief, styleId: brief.stile, ideaCreativa: ideaRef.current?.value ?? undefined, archetype, headline: headline.trim() || undefined }),
+      body: JSON.stringify({
+        slideIndex, productId: v.productId || undefined, useMockup: v.useMockup && !!v.productId, provider, brief, styleId: brief.stile, ideaCreativa: ideaRef.current?.value ?? undefined, archetype, headline: headline.trim() || undefined,
+        includiDescrizione: optsFor(slideIndex).includiDescrizione,
+        includiLogo: optsFor(slideIndex).includiLogo,
+        influencer: optsFor(slideIndex).influencer,
+      }),
     });
     const json = await res.json();
     setBusyImg(null);
@@ -109,6 +120,7 @@ export default function MetaContentDetail() {
             <option value="MANUAL">Caricamento manuale</option>
           </select>
         </div>
+        <div className="mt-2"><LogoUploader /></div>
         {provider === "GPT" && (
           <div className="mt-2 flex flex-wrap items-center gap-2">
             <span className="text-xs text-neutral-600">Stile immagine:</span>
@@ -151,6 +163,11 @@ export default function MetaContentDetail() {
         ) : (
           <>
             <div className="mb-2"><ProductMockupPicker products={products} value={valueFor(null)} onChange={(v) => setValueFor(null, v)} /></div>
+            <div className="mb-2 flex flex-wrap gap-3 text-xs">
+              <label className="flex items-center gap-1"><input type="checkbox" checked={optsFor(null).includiDescrizione} onChange={(e) => setOptsFor(null, { includiDescrizione: e.target.checked })} /> Includi descrizione</label>
+              <label className="flex items-center gap-1"><input type="checkbox" checked={optsFor(null).includiLogo} onChange={(e) => setOptsFor(null, { includiLogo: e.target.checked })} /> Includi logo</label>
+              <label className="flex items-center gap-1"><input type="checkbox" checked={optsFor(null).influencer} onChange={(e) => setOptsFor(null, { influencer: e.target.checked })} /> Influencer (UGC)</label>
+            </div>
             <button onClick={() => genImage(null)} disabled={busyImg === "null"} className="rounded bg-emerald-600 px-3 py-1 text-sm text-white disabled:opacity-40">{busyImg === "null" ? "Genero…" : "Genera immagine"}</button>
           </>
         )}
@@ -169,6 +186,11 @@ export default function MetaContentDetail() {
           ) : (
             <>
               <div className="mb-2"><ProductMockupPicker products={products} value={valueFor(idx)} onChange={(v) => setValueFor(idx, v)} /></div>
+              <div className="mb-2 flex flex-wrap gap-3 text-xs">
+                <label className="flex items-center gap-1"><input type="checkbox" checked={optsFor(idx).includiDescrizione} onChange={(e) => setOptsFor(idx, { includiDescrizione: e.target.checked })} /> Includi descrizione</label>
+                <label className="flex items-center gap-1"><input type="checkbox" checked={optsFor(idx).includiLogo} onChange={(e) => setOptsFor(idx, { includiLogo: e.target.checked })} /> Includi logo</label>
+                <label className="flex items-center gap-1"><input type="checkbox" checked={optsFor(idx).influencer} onChange={(e) => setOptsFor(idx, { influencer: e.target.checked })} /> Influencer (UGC)</label>
+              </div>
               <button onClick={() => genImage(idx)} disabled={busyImg === `${idx}`} className="rounded bg-emerald-600 px-3 py-1 text-sm text-white disabled:opacity-40">{busyImg === `${idx}` ? "Genero…" : "Genera immagine slide"}</button>
             </>
           )}
