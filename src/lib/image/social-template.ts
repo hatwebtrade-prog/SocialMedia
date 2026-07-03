@@ -6,6 +6,8 @@ export interface SocialTemplateArgs {
   accentHex?: string | null;
   copy?: { titolo: string; bullets: string[] } | null;
   brandVisual?: string | null;
+  /** True when a reference image (the first slide) is provided to keep the carousel coherent. */
+  coherenceRef?: boolean;
 }
 
 export function buildSocialTemplatePrompt(args: SocialTemplateArgs): string {
@@ -18,16 +20,22 @@ export function buildSocialTemplatePrompt(args: SocialTemplateArgs): string {
   const product = args.hasMockup
     ? "Usa il prodotto fornito come riferimento ESATTO del packaging: identico a etichetta, colori, logo e testo; non ridisegnarlo."
     : "Non mostrare né inventare alcun prodotto, packaging, bottiglia, barattolo, etichetta o logo inesistente: usa una composizione grafica/astratta con forme, icone e colori del brand. Nessun brand o prodotto falso.";
-  const richness =
-    args.variant === "MAIN"
+  // With a reference image (slide 1), the concept comes from the reference — don't impose a layout.
+  const coherence = args.coherenceRef
+    ? "Ti è fornita un'IMMAGINE DI RIFERIMENTO (la prima slide del carosello): mantieni lo STESSO concetto grafico, palette, stile e composizione della slide 1. Genera un'immagine DIVERSA per il nuovo contenuto qui sotto, restando pienamente coerente col riferimento."
+    : "";
+  const richness = args.coherenceRef
+    ? ""
+    : args.variant === "MAIN"
       ? "Layout ricco: titolo grande e leggibile in alto, prodotto in evidenza, eventuali icone circolari con brevi benefici."
       : "Layout sobria e minimale: un solo concetto, meno elementi, molto respiro.";
   const copyBlock = args.copy
-    ? `Testi da inserire nell'immagine (leggibili, italiano): titolo "${args.copy.titolo}"; punti: ${args.copy.bullets.map((b) => `"${b}"`).join(", ")}.`
+    ? `Aggiungi SOLO questi testi (leggibili, italiano), senza stravolgere il concetto grafico: titolo "${args.copy.titolo}"; punti: ${args.copy.bullets.map((b) => `"${b}"`).join(", ")}.`
     : "Nessun testo, scritte o lettere nell'immagine.";
   const brand = args.brandVisual?.trim() ? `Stile visivo del brand: ${args.brandVisual.trim()}.` : "";
   return [
     "Crea un'immagine grafica premium per un post Instagram/Facebook del brand di integratori AGOCAP. Pronta da pubblicare.",
+    coherence,
     args.productName ? `Prodotto: ${args.productName}.` : "",
     product,
     person,

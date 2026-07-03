@@ -11,6 +11,7 @@ function makeDeps(overrides = {}) {
     loadLogo: vi.fn().mockReturnValue(null),
     overlayLogo: vi.fn(async (b: Buffer) => b),
     resolveSocialCopy: vi.fn().mockResolvedValue({ titolo: "T", bullets: ["a"] }),
+    loadSlideReference: vi.fn().mockResolvedValue(null),
     ...overrides,
   };
 }
@@ -131,5 +132,21 @@ describe("generateImageAsset", () => {
     const deps = makeDeps({ loadProduct: vi.fn().mockResolvedValue({ nome: "X" }), loadMockup: vi.fn().mockResolvedValue(Buffer.from("m")), loadLogo: vi.fn().mockReturnValue(null) });
     await generateImageAsset({ contentId: "c1", slideIndex: 0, productId: "p1", social: true, includiLogo: true }, deps as any);
     expect(deps.overlayLogo).not.toHaveBeenCalled();
+  });
+
+  it("uses slide 1 as the coherence reference for a secondary slide (social)", async () => {
+    const ref = Buffer.from("slide1image");
+    const deps = makeDeps({ loadSlideReference: vi.fn().mockResolvedValue(ref) });
+    await generateImageAsset({ contentId: "c1", slideIndex: 2, social: true }, deps as any);
+    expect(deps.loadSlideReference).toHaveBeenCalledWith("c1");
+    // the reference image passed to the model is slide 1's image
+    expect((deps.callOpenAI as any).mock.calls[0][1]).toBe(ref);
+    expect((deps.callOpenAI as any).mock.calls[0][0]).toContain("RIFERIMENTO");
+  });
+
+  it("does NOT fetch a slide reference for the first slide/main image", async () => {
+    const deps = makeDeps();
+    await generateImageAsset({ contentId: "c1", slideIndex: 0, social: true }, deps as any);
+    expect(deps.loadSlideReference).not.toHaveBeenCalled();
   });
 });

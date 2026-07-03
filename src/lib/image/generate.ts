@@ -37,6 +37,8 @@ export interface ImageDeps {
   dominantColor?: (imageBuf: Buffer) => Promise<string | null>;
   loadLogo?: () => Buffer | null;
   overlayLogo?: (imageBuf: Buffer, logoBuf: Buffer) => Promise<Buffer>;
+  /** Loads the first slide's generated image (slideIndex 0) to use as a coherence reference. */
+  loadSlideReference?: (contentId: string) => Promise<Buffer | null>;
 }
 
 export interface ImageGenResult {
@@ -62,9 +64,21 @@ export async function generateImageAsset(
     const brandProfile = deps.loadBrandVisual ? await deps.loadBrandVisual() : null;
     const brandVisual = brandProfile ? buildBrandVisualContext(brandProfile, provider) : undefined;
     const product = input.productId && deps.loadProduct ? await deps.loadProduct(input.productId) : null;
+    // Reference image passed to the model. For a secondary carousel slide we prefer the first slide's
+    // image (coherence); otherwise the product mockup.
+    let imageRef = mockup;
     let prompt: string;
     if (input.social && provider === "GPT") {
-      const accentHex = mockup && deps.dominantColor ? await deps.dominantColor(mockup) : null;
+      const isSecondarySlide = (input.slideIndex ?? 0) > 0;
+      let coherenceRef = false;
+      if (isSecondarySlide && deps.loadSlideReference) {
+        const ref = await deps.loadSlideReference(input.contentId);
+        if (ref) {
+          imageRef = ref;
+          coherenceRef = true;
+        }
+      }
+      const accentHex = imageRef && deps.dominantColor ? await deps.dominantColor(imageRef) : null;
       const copy =
         input.includiDescrizione && deps.resolveSocialCopy
           ? await deps.resolveSocialCopy(input.contentId, input.slideIndex, product?.nome ?? null)
@@ -77,6 +91,7 @@ export async function generateImageAsset(
         accentHex,
         copy,
         brandVisual,
+        coherenceRef,
       });
     } else if (provider === "GPT" && product) {
       prompt = buildArchetypePrompt(input.archetype ?? "ADV", {
@@ -104,7 +119,7 @@ export async function generateImageAsset(
     if (provider === "HIGGSFIELD" && input.useMockup && input.productId && deps.ensureHiggsfieldRef) {
       customReferenceId = (await deps.ensureHiggsfieldRef(input.productId)) ?? undefined;
     }
-    let bytes = await deps.callOpenAI(prompt, mockup ?? undefined, provider, { styleId, soulSize, openaiSize, customReferenceId });
+    let bytes = await deps.callOpenAI(prompt, imageRef ?? undefined, provider, { styleId, soulSize, openaiSize, customReferenceId });
     if (input.includiLogo && deps.loadLogo && deps.overlayLogo) {
       const logo = deps.loadLogo();
       if (logo) bytes = await deps.overlayLogo(bytes, logo);

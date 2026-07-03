@@ -28,6 +28,13 @@ describe("buildSocialTemplatePrompt", () => {
     expect(main).toContain("titolo grande");
     expect(sec).toContain("sobria");
   });
+  it("adds the coherence instruction and drops the forced layout when coherenceRef", () => {
+    const p = buildSocialTemplatePrompt({ variant: "SECONDARY", influencer: false, hasMockup: false, coherenceRef: true });
+    expect(p).toContain("IMMAGINE DI RIFERIMENTO");
+    expect(p).toContain("STESSO concetto grafico");
+    expect(p).not.toContain("sobria");
+  });
+
   it("forbids inventing a product/packshot when there is no mockup", () => {
     const noMock = buildSocialTemplatePrompt({ variant: "MAIN", influencer: false, productName: "Biotina", hasMockup: false });
     expect(noMock.toLowerCase()).toContain("non mostrare né inventare");

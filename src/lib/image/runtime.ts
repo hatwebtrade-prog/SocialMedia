@@ -31,6 +31,7 @@ function sharedImageDeps(): Pick<
   | "overlayLogo"
   | "dominantColor"
   | "resolveSocialCopy"
+  | "loadSlideReference"
 > {
   return {
     loadProduct: async (productId) => {
@@ -100,6 +101,16 @@ function sharedImageDeps(): Pick<
     loadLogo: () => readLogo(),
     overlayLogo: (imageBuf, logoBuf) => overlayLogo(imageBuf, logoBuf),
     dominantColor: (imageBuf) => dominantColorHex(imageBuf),
+    loadSlideReference: async (contentId) => {
+      const asset = await prisma.generatedAsset.findFirst({ where: { contentId, slideIndex: 0, tipo: "IMMAGINE" }, select: { path: true } });
+      if (!asset?.path) return null;
+      try {
+        const buf = readFileSync(path.join(process.cwd(), asset.path));
+        return await sharp(buf).resize(1024, 1024, { fit: "inside" }).png().toBuffer();
+      } catch {
+        return null;
+      }
+    },
     resolveSocialCopy: async (contentId, slideIndex, productName) => {
       // Any failure here (DB read, Claude, parse) degrades gracefully to null → image without text.
       try {
