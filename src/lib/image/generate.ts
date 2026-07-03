@@ -66,7 +66,7 @@ export async function generateImageAsset(
     } else if (input.brief && !isBriefEmpty(input.brief)) {
       prompt = buildImagePromptFromBrief(input.brief, { provider, hasMockup: !!mockup, fallback, brandVisual });
     } else {
-      prompt = buildImagePrompt({ ideaCreativa, slideText, hasMockup: !!mockup });
+      prompt = buildImagePrompt({ ideaCreativa, slideText, hasMockup: !!mockup, brandVisual });
     }
     const dims = briefDimensions(input.brief?.formato);
     const soulSize = dims.soul;

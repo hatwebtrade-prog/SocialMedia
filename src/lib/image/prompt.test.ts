@@ -29,4 +29,17 @@ describe("buildImagePrompt", () => {
     expect(withMockup).toContain("IDENTICO");
     expect(without).not.toContain("IDENTICO");
   });
+
+  it("forbids inventing fake brands/products when there is no mockup", () => {
+    const without = buildImagePrompt({ ideaCreativa: "concept", slideText: null, hasMockup: false });
+    expect(without).toContain("nessun brand falso");
+    const withMockup = buildImagePrompt({ ideaCreativa: "concept", slideText: null, hasMockup: true });
+    expect(withMockup).not.toContain("nessun brand falso");
+  });
+
+  it("includes the brand visual style for carousel coherence when provided", () => {
+    const p = buildImagePrompt({ ideaCreativa: "concept", slideText: null, brandVisual: "palette salvia e beige, luce morbida" });
+    expect(p).toContain("Stile visivo del brand");
+    expect(p).toContain("palette salvia e beige");
+  });
 });
