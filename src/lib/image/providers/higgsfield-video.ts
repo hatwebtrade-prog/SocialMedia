@@ -28,11 +28,11 @@ export async function higgsfieldVideo(
 
   const imageUrl = await uploadHiggsfieldImage(imageBuf, key, secret);
 
-  // Mirror the image endpoint's `{ params: {...} }` envelope. If the DoP API rejects it, a flat body
-  // (the params object at the top level) is the fallback to try during live verification.
+  // `{ params: {...} }` envelope confirmed live (422 validated body.params.*). model enum:
+  // dop-lite | dop-preview | dop-turbo.
   const body = {
     params: {
-      model: opts?.model ?? "turbo",
+      model: opts?.model ?? "dop-turbo", // valid: dop-lite | dop-preview | dop-turbo
       prompt,
       input_images: [{ type: "image_url", image_url: imageUrl }],
     },
