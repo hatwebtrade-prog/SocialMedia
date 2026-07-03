@@ -3,16 +3,29 @@ import { uploadHiggsfieldImage } from "./higgsfield";
 const V1_DOP = "https://platform.higgsfield.ai/v1/image2video/dop";
 const HF_STATUS = (id: string) => `https://platform.higgsfield.ai/requests/${id}/status`;
 
-interface VideoJob {
-  id?: string;
+interface JobResult {
   status?: string;
-  status_url?: string;
   video?: { url?: string };
   results?: { raw?: { url?: string }; min?: { url?: string } };
+}
+interface VideoJob extends JobResult {
+  id?: string;
+  status_url?: string;
+  jobs?: JobResult[];
 }
 
 function sleep(ms: number): Promise<void> {
   return new Promise((r) => setTimeout(r, ms));
+}
+
+/** Status can be top-level or nested in jobs[0] depending on the endpoint. */
+function jobStatus(j: VideoJob): string | undefined {
+  return j.status ?? j.jobs?.[0]?.status;
+}
+/** The finished video URL, from any of the shapes Higgsfield returns. */
+function jobVideoUrl(j: VideoJob): string | undefined {
+  const from = (r?: JobResult) => r?.video?.url ?? r?.results?.raw?.url ?? r?.results?.min?.url;
+  return from(j) ?? from(j.jobs?.[0]);
 }
 
 /** Higgsfield Image→Video (DoP). Animates a still image into an mp4 driven by `prompt`. */
@@ -45,28 +58,31 @@ export async function higgsfieldVideo(
   if (!res.ok) throw new Error(`Higgsfield video HTTP ${res.status}: ${(await res.text().catch(() => "")).slice(0, 300)}`);
   let job: VideoJob = await res.json().catch(() => ({}));
 
-  const url0 = job.video?.url ?? job.results?.raw?.url ?? job.results?.min?.url;
-  if (job.status === "completed" && url0) return downloadVideo(url0);
+  if (jobStatus(job) === "completed") {
+    const u = jobVideoUrl(job);
+    if (u) return downloadVideo(u);
+  }
 
   const statusUrl = job.status_url ?? (job.id ? HF_STATUS(job.id) : null);
-  if (!statusUrl) throw new Error("Higgsfield video: risposta senza id/status_url");
+  if (!statusUrl) throw new Error(`Higgsfield video: risposta senza id/status_url: ${JSON.stringify(job).slice(0, 400)}`);
 
   const deadline = Date.now() + (opts?.deadlineMs ?? 300000);
   while (Date.now() < deadline) {
-    if (job.status === "completed") {
-      const u = job.video?.url ?? job.results?.raw?.url ?? job.results?.min?.url;
-      if (!u) throw new Error("Higgsfield video: completato ma nessun video restituito");
+    const status = jobStatus(job);
+    if (status === "completed") {
+      const u = jobVideoUrl(job);
+      if (!u) throw new Error(`Higgsfield video: completato ma nessun url video: ${JSON.stringify(job).slice(0, 400)}`);
       return downloadVideo(u);
     }
-    if (["failed", "canceled", "error", "nsfw"].includes(job.status ?? "")) {
-      throw new Error(`Higgsfield video: generazione ${job.status}`);
+    if (["failed", "canceled", "error", "nsfw"].includes(status ?? "")) {
+      throw new Error(`Higgsfield video: generazione ${status}`);
     }
     await sleep(3000);
     const st = await fetch(statusUrl, { headers: { Authorization: auth } });
     if (!st.ok) throw new Error(`Higgsfield video status HTTP ${st.status}`);
     job = await st.json().catch(() => ({}));
   }
-  throw new Error("Higgsfield video: timeout");
+  throw new Error(`Higgsfield video: timeout (ultimo stato: ${JSON.stringify(job).slice(0, 400)})`);
 }
 
 async function downloadVideo(url: string): Promise<Buffer> {
