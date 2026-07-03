@@ -14,6 +14,10 @@ Aggiungere per ogni immagine **spunte** che controllano cosa includere e concate
 prompt: **Includi prodotto**, **Includi descrizione** (testi), **Includi logo** (overlay reale),
 **Influencer (UGC)**.
 
+**Ambito:** vale per **ogni immagine generata su Meta** — sia l'immagine principale del POST sia
+**ciascuna slide** del carosello (e story/reel dove si genera un'immagine). Le spunte sono **per singola
+immagine** (ogni slide ha le sue), applicate in modo uniforme dallo stesso motore `generateImageAsset`.
+
 **Importante:** le immagini NON devono essere tutte uguali e **NON** devono avere l'influencer di
 default. L'influencer/persona compare **solo** se la spunta "Influencer (UGC)" è attiva; altrimenti lo
 stile è **sobrio** (prodotto + grafica, senza persona).
