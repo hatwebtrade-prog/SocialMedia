@@ -20,15 +20,15 @@ export function buildSocialTemplatePrompt(args: SocialTemplateArgs): string {
   const product = args.hasMockup
     ? "Usa il prodotto fornito come riferimento ESATTO del packaging: identico a etichetta, colori, logo e testo; non ridisegnarlo."
     : "Non mostrare né inventare alcun prodotto, packaging, bottiglia, barattolo, etichetta o logo inesistente: usa una composizione grafica/astratta con forme, icone e colori del brand. Nessun brand o prodotto falso.";
-  // With a reference image (slide 1), the concept comes from the reference — don't impose a layout.
+  // Coherence = same palette + same style family as the other slides, but a DIFFERENT composition
+  // (avoids every slide looking identical / like a fixed template).
   const coherence = args.coherenceRef
-    ? "Ti è fornita un'IMMAGINE DI RIFERIMENTO (la prima slide del carosello): mantieni lo STESSO concetto grafico, palette, stile e composizione della slide 1. Genera un'immagine DIVERSA per il nuovo contenuto qui sotto, restando pienamente coerente col riferimento."
+    ? "Questa immagine fa parte dello STESSO carosello delle altre slide: mantieni la stessa palette e la stessa famiglia di stile fotografico/grafico e mood, MA usa una composizione, un'inquadratura e una disposizione DIVERSE — ogni slide deve spaziare e variare, NON ripetere lo stesso layout né copiare le altre."
     : "";
-  const richness = args.coherenceRef
-    ? ""
-    : args.variant === "MAIN"
-      ? "Layout ricco: titolo grande e leggibile in alto, prodotto in evidenza, eventuali icone circolari con brevi benefici."
-      : "Layout sobria e minimale: un solo concetto, meno elementi, molto respiro.";
+  const variety =
+    args.variant === "MAIN"
+      ? "Immagine d'apertura d'impatto, pulita e premium."
+      : "Composizione originale e diversa dalle altre slide, pulita e premium.";
   const copyBlock = args.copy
     ? `Aggiungi SOLO questi testi (leggibili, italiano), senza stravolgere il concetto grafico: titolo "${args.copy.titolo}"; punti: ${args.copy.bullets.map((b) => `"${b}"`).join(", ")}.`
     : "Nessun testo, scritte o lettere nell'immagine.";
@@ -39,7 +39,7 @@ export function buildSocialTemplatePrompt(args: SocialTemplateArgs): string {
     args.productName ? `Prodotto: ${args.productName}.` : "",
     product,
     person,
-    richness,
+    variety,
     accent,
     copyBlock,
     brand,

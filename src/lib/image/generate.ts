@@ -64,21 +64,23 @@ export async function generateImageAsset(
     const brandProfile = deps.loadBrandVisual ? await deps.loadBrandVisual() : null;
     const brandVisual = brandProfile ? buildBrandVisualContext(brandProfile, provider) : undefined;
     const product = input.productId && deps.loadProduct ? await deps.loadProduct(input.productId) : null;
-    // Reference image passed to the model. For a secondary carousel slide we prefer the first slide's
-    // image (coherence); otherwise the product mockup.
-    let imageRef = mockup;
+    // Reference image passed to the model = the product mockup (if any). For a secondary carousel
+    // slide we derive the PALETTE from the first slide for coherence, but do NOT pass slide 1 as a
+    // literal reference — that made every slide look identical. Composition stays free/varied.
+    const imageRef = mockup;
     let prompt: string;
     if (input.social && provider === "GPT") {
       const isSecondarySlide = (input.slideIndex ?? 0) > 0;
       let coherenceRef = false;
+      let accentSource = mockup;
       if (isSecondarySlide && deps.loadSlideReference) {
         const ref = await deps.loadSlideReference(input.contentId);
         if (ref) {
-          imageRef = ref;
+          accentSource = ref;
           coherenceRef = true;
         }
       }
-      const accentHex = imageRef && deps.dominantColor ? await deps.dominantColor(imageRef) : null;
+      const accentHex = accentSource && deps.dominantColor ? await deps.dominantColor(accentSource) : null;
       const copy =
         input.includiDescrizione && deps.resolveSocialCopy
           ? await deps.resolveSocialCopy(input.contentId, input.slideIndex, product?.nome ?? null)

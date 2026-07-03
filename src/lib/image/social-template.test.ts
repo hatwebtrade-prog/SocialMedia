@@ -22,17 +22,17 @@ describe("buildSocialTemplatePrompt", () => {
     const noCopy = buildSocialTemplatePrompt({ ...base, variant: "SECONDARY", influencer: false });
     expect(noCopy.toLowerCase()).toContain("nessun testo");
   });
-  it("MAIN is richer than SECONDARY", () => {
+  it("MAIN opens strong; SECONDARY asks for a different composition", () => {
     const main = buildSocialTemplatePrompt({ ...base, variant: "MAIN", influencer: false });
     const sec = buildSocialTemplatePrompt({ ...base, variant: "SECONDARY", influencer: false });
-    expect(main).toContain("titolo grande");
-    expect(sec).toContain("sobria");
+    expect(main).toContain("d'apertura");
+    expect(sec).toContain("diversa dalle altre");
   });
-  it("adds the coherence instruction and drops the forced layout when coherenceRef", () => {
+  it("coherence keeps the palette/style family but asks for a DIFFERENT composition", () => {
     const p = buildSocialTemplatePrompt({ variant: "SECONDARY", influencer: false, hasMockup: false, coherenceRef: true });
-    expect(p).toContain("IMMAGINE DI RIFERIMENTO");
-    expect(p).toContain("STESSO concetto grafico");
-    expect(p).not.toContain("sobria");
+    expect(p).toContain("STESSO carosello");
+    expect(p).toContain("spaziare e variare");
+    expect(p).toContain("composizione, un'inquadratura e una disposizione DIVERSE");
   });
 
   it("forbids inventing a product/packshot when there is no mockup", () => {

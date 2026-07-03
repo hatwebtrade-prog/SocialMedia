@@ -134,14 +134,15 @@ describe("generateImageAsset", () => {
     expect(deps.overlayLogo).not.toHaveBeenCalled();
   });
 
-  it("uses slide 1 as the coherence reference for a secondary slide (social)", async () => {
+  it("derives the palette from slide 1 for coherence but does NOT pass it as a literal reference (varied composition)", async () => {
     const ref = Buffer.from("slide1image");
-    const deps = makeDeps({ loadSlideReference: vi.fn().mockResolvedValue(ref) });
+    const deps = makeDeps({ loadSlideReference: vi.fn().mockResolvedValue(ref), dominantColor: vi.fn().mockResolvedValue("#abcdef") });
     await generateImageAsset({ contentId: "c1", slideIndex: 2, social: true }, deps as any);
     expect(deps.loadSlideReference).toHaveBeenCalledWith("c1");
-    // the reference image passed to the model is slide 1's image
-    expect((deps.callOpenAI as any).mock.calls[0][1]).toBe(ref);
-    expect((deps.callOpenAI as any).mock.calls[0][0]).toContain("RIFERIMENTO");
+    expect(deps.dominantColor).toHaveBeenCalledWith(ref); // palette taken from slide 1
+    // slide 1 is NOT passed as the model's reference image → composition stays free
+    expect((deps.callOpenAI as any).mock.calls[0][1]).not.toBe(ref);
+    expect((deps.callOpenAI as any).mock.calls[0][0]).toContain("carosello");
   });
 
   it("does NOT fetch a slide reference for the first slide/main image", async () => {
