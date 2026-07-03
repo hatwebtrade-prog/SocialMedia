@@ -37,6 +37,18 @@ describe("buildImagePrompt", () => {
     expect(withMockup).not.toContain("nessun brand falso");
   });
 
+  it("for a slide, depicts only the slide content and drops the whole-carousel ideaCreativa", () => {
+    const p = buildImagePrompt({ ideaCreativa: "Carosello con prima slide e ultima slide col prodotto", slideText: "Slide 2: ritenzione idrica" });
+    expect(p).toContain("ritenzione idrica");
+    expect(p).not.toContain("Carosello con prima slide");
+  });
+
+  it("forbids collage / multiple slides in one image (single scene)", () => {
+    const p = buildImagePrompt({ ideaCreativa: "concept", slideText: "Slide 2: ritenzione idrica" }).toLowerCase();
+    expect(p).toContain("una sola immagine");
+    expect(p).toContain("non un collage");
+  });
+
   it("includes the brand visual style for carousel coherence when provided", () => {
     const p = buildImagePrompt({ ideaCreativa: "concept", slideText: null, brandVisual: "palette salvia e beige, luce morbida" });
     expect(p).toContain("Stile visivo del brand");

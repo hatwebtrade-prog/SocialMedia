@@ -80,7 +80,8 @@ const AVOID =
   "deformed hands, extra fingers, missing fingers, artificial plastic skin, plastic face, " +
   "unrealistic smile, overexposed, underexposed, messy background, cheap stock photo, " +
   "amateur design, cartoon style, 3d render look, surreal, medical claim, before and after, " +
-  "exaggerated results, cluttered composition, oversaturated colors";
+  "exaggerated results, cluttered composition, oversaturated colors, " +
+  "collage, split screen, multiple panels, grid layout, multiple slides in one image, picture-in-picture";
 
 const FORMATO_LABEL: Record<Formato, string> = {
   verticale: "vertical 2:3 portrait social format",

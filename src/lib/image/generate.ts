@@ -1,4 +1,4 @@
-import { buildImagePrompt } from "./prompt";
+import { buildImagePrompt, cleanSlide } from "./prompt";
 import { buildArchetypePrompt, type ImageArchetype, type ProductPromptData } from "./archetypes";
 import { buildImagePromptFromBrief, isBriefEmpty, briefDimensions, type ImageBrief } from "./brief";
 import type { ImageProvider } from "./providers";
@@ -61,7 +61,8 @@ export async function generateImageAsset(
         hasMockup: !!mockup,
         headline: input.headline,
         formato: input.brief?.formato,
-        ideaCreativa,
+        // For a slide, drive the scene from THIS slide's content, not the whole-carousel idea.
+        ideaCreativa: slideText ? cleanSlide(slideText) : ideaCreativa,
       }).full;
     } else if (input.brief && !isBriefEmpty(input.brief)) {
       prompt = buildImagePromptFromBrief(input.brief, { provider, hasMockup: !!mockup, fallback, brandVisual });
