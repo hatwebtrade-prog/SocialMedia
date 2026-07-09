@@ -1,0 +1,307 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum IdeaStatus {
+  NUOVA
+  INTERESSANTE
+  APPROVATA
+  SCARTATA
+  DA_APPROFONDIRE
+}
+
+enum IdeaCategory {
+  INTEGRATORI
+  BEAUTY
+  BENESSERE
+  STAGIONALITA
+  EDUCATIONAL
+  VENDITA
+  FAQ
+  TREND
+}
+
+enum Platform {
+  INSTAGRAM
+  FACEBOOK
+  TIKTOK
+  BLOG
+}
+
+enum SourceType {
+  AI
+  MANUALE
+  API
+}
+
+enum KnowledgeType {
+  INFO_PRODOTTO
+  BRAND_VOICE
+  TARGET
+  CLAIM
+  LINEA_GUIDA
+  DOCUMENTO
+  IDEA_PERSONALE
+  PIANO_EDITORIALE
+}
+
+model KnowledgeFile {
+  id        String            @id @default(cuid())
+  nome      String
+  path      String
+  mimeType  String
+  kind      KnowledgeFileKind
+  testo     String?
+  stato     FileStatus        @default(IN_CORSO)
+  errore    String?
+  createdAt DateTime          @default(now())
+}
+
+enum KnowledgeFileKind {
+  DOCUMENTO
+  IMMAGINE
+}
+
+enum FileStatus {
+  IN_CORSO
+  PRONTO
+  ERRORE
+}
+
+enum RunStatus {
+  RUNNING
+  DONE
+  ERROR
+}
+
+enum Destinazione {
+  META
+  BLOG
+  TIKTOK
+  EMAIL
+}
+
+enum Canale {
+  META
+  TIKTOK
+  BLOG
+  EMAIL
+}
+
+enum ContentFormat {
+  POST
+  CAROSELLO
+  ARTICOLO
+  REEL
+  STORY
+  NEWSLETTER
+  PROMO_EMAIL
+  EDUCAZIONALE
+}
+
+enum ContentStatus {
+  BOZZA
+  DA_APPROVARE
+  APPROVATO
+  PROGRAMMATO
+  PUBBLICATO
+}
+
+enum AssetType {
+  IMMAGINE
+  VIDEO
+}
+
+enum PublicationStatus {
+  NON_INVIATO
+  INVIATO_A_N8N
+  IN_PUBBLICAZIONE
+  PUBBLICATO
+  ERRORE
+}
+
+model Product {
+  id          String          @id @default(cuid())
+  nome        String
+  categoria   String?
+  descrizione String?
+  benefici    String?
+  ingredienti String?
+  target      String?
+  url         String?
+  handle             String?         @unique
+  imagePath          String?
+  higgsfieldSoulId   String?
+  attivo             Boolean         @default(true)
+  createdAt   DateTime        @default(now())
+  ideas       Idea[]
+  knowledge   KnowledgeItem[]
+}
+
+model KnowledgeItem {
+  id        String        @id @default(cuid())
+  tipo      KnowledgeType
+  titolo    String
+  contenuto String
+  tags      String[]      @default([])
+  productId String?
+  product   Product?      @relation(fields: [productId], references: [id], onDelete: SetNull)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+}
+
+model SignalSource {
+  id         String          @id @default(cuid())
+  key        String          @unique
+  nome       String
+  tipo       SourceType
+  config     Json            @default("{}")
+  abilitata  Boolean         @default(true)
+  createdAt  DateTime        @default(now())
+  ideas      Idea[]
+  runs       GenerationRun[]
+}
+
+model GenerationRun {
+  id            String       @id @default(cuid())
+  sourceId      String
+  source        SignalSource @relation(fields: [sourceId], references: [id])
+  input         Json         @default("{}")
+  promptUsato   String       @default("")
+  outputGrezzo  Json         @default("{}")
+  modello       String       @default("")
+  inputTokens   Int          @default(0)
+  outputTokens  Int          @default(0)
+  status        RunStatus    @default(RUNNING)
+  errore        String?
+  createdAt     DateTime     @default(now())
+  ideas         Idea[]
+
+  @@index([sourceId])
+}
+
+model Idea {
+  id                     String         @id @default(cuid())
+  titolo                 String
+  descrizione            String         @default("")
+  category               IdeaCategory
+  piattaformeConsigliate Platform[]     @default([])
+  seoScore               Int            @default(3)
+  viralityScore          Int            @default(3)
+  priority               Int            @default(3)
+  status                 IdeaStatus     @default(NUOVA)
+  note                   String?
+  tags                   String[]       @default([])
+  destinazioni           Destinazione[] @default([])
+  keyword                String?
+  volumeRicerca          Int?
+  difficolta             Int?
+  trendKeyword           String?
+  productId              String?
+  product                Product?       @relation(fields: [productId], references: [id], onDelete: SetNull)
+  sourceId               String
+  source                 SignalSource   @relation(fields: [sourceId], references: [id])
+  generationRunId        String?
+  generationRun          GenerationRun? @relation(fields: [generationRunId], references: [id], onDelete: SetNull)
+  createdAt              DateTime       @default(now())
+  updatedAt              DateTime       @updatedAt
+  deletedAt              DateTime?
+  archivedAt             DateTime?
+  contenuti              GeneratedContent[]
+
+  @@index([status, category])
+  @@index([category])
+  @@index([sourceId])
+  @@index([productId])
+  @@index([keyword])
+  @@index([deletedAt])
+  @@index([archivedAt])
+}
+
+model GeneratedContent {
+  id            String          @id @default(cuid())
+  ideaId        String
+  idea          Idea            @relation(fields: [ideaId], references: [id], onDelete: Cascade)
+  canale        Canale
+  formato       ContentFormat
+  piattaforme   Platform[]      @default([])
+  status        ContentStatus   @default(BOZZA)
+  dataPrevista  DateTime?
+  payload       Json            @default("{}")
+  promptUsato   String          @default("")
+  modello       String          @default("")
+  inputTokens   Int             @default(0)
+  outputTokens  Int             @default(0)
+  outputGrezzo  Json            @default("{}")
+  publicationStatus  PublicationStatus  @default(NON_INVIATO)
+  publicationError   String?
+  publishedAt        DateTime?
+  alsoFacebook       Boolean            @default(false)
+  shopifyArticleId   String?
+  shopifyArticleUrl  String?
+  facebookPostId     String?
+  instagramPostId    String?
+  deletedAt          DateTime?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  assets        GeneratedAsset[]
+  calendarItem  EditorialCalendarItem?
+
+  @@index([status])
+  @@index([canale])
+  @@index([dataPrevista])
+  @@index([ideaId])
+  @@index([deletedAt])
+}
+
+model EditorialCalendarItem {
+  id           String            @id @default(cuid())
+  contentId    String            @unique
+  content      GeneratedContent  @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  scheduledAt  DateTime
+  channel      Canale
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+
+  @@index([scheduledAt])
+  @@index([channel])
+}
+
+model GeneratedAsset {
+  id         String           @id @default(cuid())
+  contentId  String
+  content    GeneratedContent @relation(fields: [contentId], references: [id], onDelete: Cascade)
+  slideIndex Int?
+  tipo       AssetType        @default(IMMAGINE)
+  prompt     String           @default("")
+  modello    String           @default("")
+  path       String
+  createdAt  DateTime         @default(now())
+
+  @@index([contentId])
+}
+
+model BrandVisualProfile {
+  id                  String   @id @default("default")
+  palette             String[] @default([])
+  stileFotografico    String?
+  mood                String?
+  elementiRicorrenti  String?
+  daEvitare           String?
+  referenceImagePaths String[] @default([])
+  updatedAt           DateTime @updatedAt
+}
+
+// Key/value app settings (es. credenziali Shopify/Meta configurabili da UI).
+// I valori qui hanno precedenza sulle env; se assenti si usa il .env come fallback.
+model AppSetting {
+  key       String   @id
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

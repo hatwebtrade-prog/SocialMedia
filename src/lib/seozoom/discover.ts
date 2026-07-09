@@ -1,0 +1,65 @@
+import { selectCandidates, type NormalizedKeyword } from "./select";
+import type { ShapingOutput } from "./schema";
+
+export interface DiscoverInput {
+  seeds?: string[];
+  productId?: string;
+  categoria?: string;
+  topN?: number;
+}
+
+export interface ShapingResult extends ShapingOutput {
+  promptUsato: string;
+  modello: string;
+  inputTokens: number;
+  outputTokens: number;
+  rawOutput: unknown;
+}
+
+export interface SeozoomDeps {
+  loadContext: (input: DiscoverInput) => Promise<{ seeds: string[]; kbContext: string; prodottoNome?: string }>;
+  fetchKeywords: (seed: string) => Promise<NormalizedKeyword[]>;
+  googleRelated: (seeds: string[]) => Promise<string[]>;
+  enrichDifficulty: (keywords: NormalizedKeyword[]) => Promise<NormalizedKeyword[]>;
+  callClaude: (args: { kbContext: string; prodottoNome?: string; candidates: NormalizedKeyword[] }) => Promise<ShapingResult>;
+  persist: (args: { input: DiscoverInput; candidates: NormalizedKeyword[]; claudeResult: ShapingResult }) => Promise<{ runId: string; created: number }>;
+  recordError: (input: DiscoverInput, message: string) => Promise<void>;
+}
+
+export interface DiscoverResult {
+  status: "DONE" | "ERROR";
+  created: number;
+  runId?: string;
+  error?: string;
+}
+
+export async function discoverKeywords(input: DiscoverInput, deps: SeozoomDeps): Promise<DiscoverResult> {
+  try {
+    const { seeds, kbContext, prodottoNome } = await deps.loadContext(input);
+    const related = await deps.googleRelated(seeds);
+    const allSeeds = Array.from(new Set([...seeds, ...related]));
+    const fetched = (await Promise.all(allSeeds.map((s) => deps.fetchKeywords(s)))).flat();
+
+    // POOL_SIZE capped at 15: metrics action requires one HTTP call per keyword
+    // (batch not supported — confirmed live 2026-06-23). At 20 req/min rate limit,
+    // 15 is the safe ceiling before the `related` fetch calls are also counted.
+    const POOL_SIZE = 15;
+    const pool = selectCandidates(fetched, { topN: POOL_SIZE });
+    if (pool.length === 0) throw new Error("Nessuna keyword trovata da SEOZoom per i seed indicati");
+
+    const enriched = await deps.enrichDifficulty(pool);
+    const candidates = selectCandidates(enriched, { topN: input.topN ?? 12 });
+
+    const claudeResult = await deps.callClaude({ kbContext, prodottoNome, candidates });
+    const { runId, created } = await deps.persist({ input, candidates, claudeResult });
+    return { status: "DONE", created, runId };
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    try {
+      await deps.recordError(input, message);
+    } catch {
+      // recording the error run failed too; keep the original error
+    }
+    return { status: "ERROR", created: 0, error: message };
+  }
+}
