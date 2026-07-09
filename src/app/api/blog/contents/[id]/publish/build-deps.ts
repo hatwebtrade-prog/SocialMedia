@@ -23,7 +23,7 @@ export function buildBlogPublishDeps(): BlogPublishDeps {
         prodotti?: { handle: string }[];
       };
       const asset = c.assets[0];
-      let headerSrc: string | null = null;
+      let headerBase64: string | undefined;
       if (asset?.path) {
         const b64 = readAssetBase64(asset.path);
         if (b64) {
@@ -31,12 +31,15 @@ export function buildBlogPublishDeps(): BlogPublishDeps {
             .resize({ width: 1200, withoutEnlargement: true })
             .jpeg({ quality: 82 })
             .toBuffer();
-          headerSrc = `data:image/jpeg;base64,${slim.toString("base64")}`;
+          headerBase64 = slim.toString("base64");
         }
       }
       const cards = await resolveBlogProductCards(c.ideaId, (p.prodotti ?? []).map((x) => x.handle));
-      const corpoHtml = assembleArticleHtml(p, { headerSrc, cards });
-      return { titoloSeo: p.titoloSeo ?? "Articolo", corpoHtml, jsonLd: p.jsonLd, imageBase64: undefined };
+      // La testata diventa l'IMMAGINE IN EVIDENZA di Shopify: così appare come miniatura
+      // nella lista/homepage "Consigli" e come hero dell'articolo. NON la incorporiamo nel
+      // body (headerSrc: null) per non mostrarla due volte nella pagina articolo.
+      const corpoHtml = assembleArticleHtml(p, { headerSrc: null, cards });
+      return { titoloSeo: p.titoloSeo ?? "Articolo", corpoHtml, jsonLd: p.jsonLd, imageBase64: headerBase64 };
     },
     publish: async ({ blogId, blogHandle, title, bodyHtml, imageBase64, published }) => {
       const a = await publishArticle({ blogId, title, bodyHtml, imageBase64, published });

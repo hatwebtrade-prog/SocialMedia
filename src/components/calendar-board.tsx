@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import Link from "next/link";
 import { channelColor, type CalendarEntry } from "@/lib/calendar/helpers";
 import { StatusBadge } from "@/components/status-badge";
@@ -32,7 +32,12 @@ export function CalendarBoard() {
   const [detailLoading, setDetailLoading] = useState(false);
   const [actionBusy, setActionBusy] = useState(false);
 
-  const [from, to] = view === "settimana" ? [startOfWeek(cursor), endOfWeek(cursor)] : [startOfMonth(cursor), endOfMonth(cursor)];
+  // Memoizzato: senza questo `from`/`to` sono nuove Date a ogni render → loadItems
+  // cambia identità → l'effetto rifà la fetch all'infinito (loop di re-render).
+  const [from, to] = useMemo<[Date, Date]>(
+    () => (view === "settimana" ? [startOfWeek(cursor), endOfWeek(cursor)] : [startOfMonth(cursor), endOfMonth(cursor)]),
+    [view, cursor],
+  );
 
   const loadItems = useCallback(async () => {
     const qs = new URLSearchParams({ from: from.toISOString(), to: to.toISOString() });
