@@ -27,6 +27,7 @@ export async function PATCH(request: Request, { params }: Ctx) {
   if (parsed.data.dataPrevista !== undefined) {
     data.dataPrevista = parsed.data.dataPrevista ? new Date(parsed.data.dataPrevista) : null;
   }
+  if (parsed.data.alsoFacebook !== undefined) data.alsoFacebook = parsed.data.alsoFacebook;
   try {
     const content = await prisma.generatedContent.update({ where: { id }, data });
     return NextResponse.json(content);

@@ -11,7 +11,7 @@ const CHANNELS = ["META", "BLOG", "TIKTOK", "EMAIL"];
 const GIORNI = ["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"];
 
 interface Unscheduled { id: string; canale: string; titolo: string; }
-interface ContentDetail { id: string; canale: string; status: string; titolo: string; caption?: string; imageUrl?: string; }
+interface ContentDetail { id: string; canale: string; status: string; titolo: string; caption?: string; imageUrl?: string; alsoFacebook?: boolean; }
 
 const startOfMonth = (d: Date) => new Date(d.getFullYear(), d.getMonth(), 1);
 const endOfMonth = (d: Date) => new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59);
@@ -98,6 +98,7 @@ export function CalendarBoard() {
         id: d.id, canale: entry.channel, status: d.status ?? entry.status, titolo: entry.titolo,
         caption: d.payload?.caption ?? d.payload?.titoloSeo ?? undefined,
         imageUrl: withPath?.id ? `/api/assets/${withPath.id}` : undefined,
+        alsoFacebook: d.alsoFacebook,
       });
     } catch {
       setDetail(fallback);
@@ -123,6 +124,16 @@ export function CalendarBoard() {
       setActionBusy(false);
     }
   }, [selected, loadItems]);
+
+  const toggleAlsoFb = useCallback(async (checked: boolean) => {
+    if (!selected) return;
+    setDetail((dt) => (dt ? { ...dt, alsoFacebook: checked } : dt));
+    await fetch(`/api/blog/contents/${selected.contentId}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ alsoFacebook: checked }),
+    }).catch(() => {});
+  }, [selected]);
 
   const removeFromCalendar = useCallback(async () => {
     if (!selected) return;
@@ -277,6 +288,13 @@ export function CalendarBoard() {
                 </div>
                 {detail?.caption ? <p className="whitespace-pre-wrap text-neutral-700">{detail.caption}</p> : null}
                 <span className="block text-xs text-neutral-400">Programmato: {new Date(selected.scheduledAt).toLocaleString("it-IT", { dateStyle: "medium", timeStyle: "short" })}</span>
+
+                {selected.channel === "BLOG" ? (
+                  <label className="flex items-center gap-2 rounded bg-neutral-50 px-2 py-2 text-sm text-neutral-700">
+                    <input type="checkbox" checked={!!detail?.alsoFacebook} onChange={(e) => toggleAlsoFb(e.target.checked)} disabled={detailLoading} />
+                    Pubblica anche su Facebook alla pubblicazione
+                  </label>
+                ) : null}
 
                 <div className="flex flex-col gap-2 pt-2">
                   {(detail?.status ?? selected.status) !== "APPROVATO" ? (

@@ -241,6 +241,7 @@ model GeneratedContent {
   publicationStatus  PublicationStatus  @default(NON_INVIATO)
   publicationError   String?
   publishedAt        DateTime?
+  alsoFacebook       Boolean            @default(false)
   shopifyArticleId   String?
   shopifyArticleUrl  String?
   facebookPostId     String?

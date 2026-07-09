@@ -21,6 +21,7 @@ interface Content {
   assets: Asset[];
   publicationStatus?: string;
   shopifyArticleUrl?: string | null;
+  alsoFacebook?: boolean;
 }
 
 const STATUSES = ["BOZZA", "DA_APPROVARE", "APPROVATO", "PROGRAMMATO", "PUBBLICATO"];
@@ -33,6 +34,7 @@ export default function BlogDetailPage({ params }: { params: Promise<{ id: strin
   const [blogId, setBlogId] = useState("");
   const [pubMsg, setPubMsg] = useState<string | null>(null);
   const [pubBusy, setPubBusy] = useState(false);
+  const [alsoFb, setAlsoFb] = useState(false);
   const [products, setProducts] = useState<{ id: string; nome: string; imagePath: string | null }[]>([]);
   const [refProductId, setRefProductId] = useState("");
   const [useMockup, setUseMockup] = useState(false);
@@ -46,7 +48,7 @@ export default function BlogDetailPage({ params }: { params: Promise<{ id: strin
   const load = () =>
     fetch(`/api/blog/contents/${id}`)
       .then((r) => { if (!r.ok) throw new Error("Articolo non trovato"); return r.json(); })
-      .then((d) => { setC(d); setErr(null); })
+      .then((d) => { setC(d); setAlsoFb(!!d?.alsoFacebook); setErr(null); })
       .catch(() => setErr("Impossibile caricare l'articolo."));
   useEffect(() => { load(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [id]);
 
@@ -65,7 +67,7 @@ export default function BlogDetailPage({ params }: { params: Promise<{ id: strin
     if (!blog) { setPubMsg("Scegli un blog Shopify."); return; }
     setPubBusy(true); setPubMsg(null);
     try {
-      const res = await fetch(`/api/blog/contents/${id}/publish`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ blogId: blog.id, blogHandle: blog.handle, published: true }) });
+      const res = await fetch(`/api/blog/contents/${id}/publish`, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ blogId: blog.id, blogHandle: blog.handle, published: true, alsoFacebook: alsoFb }) });
       const json = await res.json();
       setPubMsg(res.ok && json.status === "DONE" ? "Pubblicato su Shopify." : `Errore: ${json.error ?? "sconosciuto"}`);
       await load();
@@ -148,6 +150,10 @@ export default function BlogDetailPage({ params }: { params: Promise<{ id: strin
             </select>
             <button onClick={pubblica} disabled={pubBusy} className="rounded bg-green-600 px-3 py-1 text-white disabled:opacity-40">{pubBusy ? "Pubblico…" : "Pubblica su Shopify"}</button>
           </div>
+          <label className="mt-2 flex items-center gap-2 text-sm text-neutral-700">
+            <input type="checkbox" checked={alsoFb} onChange={(e) => setAlsoFb(e.target.checked)} />
+            Pubblica anche su Facebook (post con immagine + link all&apos;articolo)
+          </label>
           {pubMsg && <p className="mt-2">{pubMsg}</p>}
         </div>
       )}
