@@ -1,3 +1,15 @@
+/** Composizione da banner editoriale AGOCAP per le immagini del blog: formato orizzontale,
+ *  soggetto/prodotto hero su un lato, spazio negativo pulito sull'altro (per il titolo),
+ *  sfondo brand, ingredienti come props, look pubblicitario premium — persone ammesse. */
+export const BLOG_BANNER_COMPOSITION =
+  "Formato e composizione da BANNER EDITORIALE ORIZZONTALE in stile pubblicitario premium per un brand di integratori. " +
+  "Posiziona il soggetto principale (il PRODOTTO se presente, altrimenti una persona o un elemento lifestyle a tema) con forza su UN LATO dell'inquadratura, preferibilmente a DESTRA, come hero ben visibile ed eventualmente elevato su un piano o podio elegante. " +
+  "Lascia il LATO OPPOSTO (a SINISTRA) PULITO e ordinato, come ampio spazio negativo dove potrà andare un titolo: nessun elemento importante in quell'area. " +
+  "Sfondo elegante a tinta piena o gradiente morbido, in un colore coerente col tema del prodotto/articolo; illuminazione da studio commerciale, resa premium, patinata e nitida. " +
+  "Disponi con gusto attorno alla base alcuni ingredienti naturali e props botanici legati al tema. " +
+  "Le PERSONE sono ammesse e gradite: una modella o un modello possono comparire, integrati in modo naturale e realistico (mani e pelle credibili). " +
+  "Resta una SINGOLA scena coesa (non un collage) e NON inserire testo, titoli, scritte o loghi renderizzati nell'immagine.";
+
 export interface ImagePromptArgs {
   ideaCreativa: string;
   slideText?: string | null;

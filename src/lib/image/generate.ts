@@ -1,4 +1,4 @@
-import { buildImagePrompt, cleanSlide } from "./prompt";
+import { buildImagePrompt, cleanSlide, BLOG_BANNER_COMPOSITION } from "./prompt";
 import { buildArchetypePrompt, type ImageArchetype, type ProductPromptData } from "./archetypes";
 import { buildImagePromptFromBrief, isBriefEmpty, briefDimensions, type ImageBrief } from "./brief";
 import { buildSocialTemplatePrompt } from "./social-template";
@@ -23,6 +23,8 @@ export interface ImageGenInput {
   includiDescrizione?: boolean;
   includiLogo?: boolean;
   influencer?: boolean;
+  /** Blog-only: impone la composizione a banner editoriale AGOCAP (formato orizzontale). */
+  blogBanner?: boolean;
 }
 
 export interface ImageDeps {
@@ -111,7 +113,9 @@ export async function generateImageAsset(
     } else {
       prompt = buildImagePrompt({ ideaCreativa, slideText, hasMockup: !!mockup, brandVisual });
     }
-    const dims = briefDimensions(input.brief?.formato);
+    // Blog: impone la composizione a banner editoriale AGOCAP (orizzontale di default).
+    if (input.blogBanner) prompt = `${prompt} ${BLOG_BANNER_COMPOSITION}`;
+    const dims = briefDimensions(input.brief?.formato ?? (input.blogBanner ? "orizzontale" : undefined));
     const soulSize = dims.soul;
     const openaiSize = dims.openaiSize;
     const styleId = input.styleId ?? input.brief?.stile;
