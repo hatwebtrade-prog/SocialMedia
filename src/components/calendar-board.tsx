@@ -11,6 +11,7 @@ const CHANNELS = ["META", "BLOG", "TIKTOK", "EMAIL"];
 const GIORNI = ["Lun", "Mar", "Mer", "Gio", "Ven", "Sab", "Dom"];
 
 interface Unscheduled { id: string; canale: string; titolo: string; }
+interface ContentDetail { id: string; canale: string; status: string; titolo: string; caption?: string; imageUrl?: string; }
 
 const startOfMonth = (d: Date) => new Date(d.getFullYear(), d.getMonth(), 1);
 const endOfMonth = (d: Date) => new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59);
@@ -26,6 +27,10 @@ export function CalendarBoard() {
   const [status, setStatus] = useState("");
   const [items, setItems] = useState<CalendarEntry[]>([]);
   const [unscheduled, setUnscheduled] = useState<Unscheduled[]>([]);
+  const [selected, setSelected] = useState<CalendarEntry | null>(null);
+  const [detail, setDetail] = useState<ContentDetail | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [actionBusy, setActionBusy] = useState(false);
 
   const [from, to] = view === "settimana" ? [startOfWeek(cursor), endOfWeek(cursor)] : [startOfMonth(cursor), endOfMonth(cursor)];
 
@@ -68,6 +73,66 @@ export function CalendarBoard() {
     refresh();
   };
 
+  const contentEndpoint = (channel: string, contentId: string) =>
+    channel === "META" ? `/api/meta/contents/${contentId}`
+    : channel === "BLOG" ? `/api/blog/contents/${contentId}`
+    : null;
+
+  const fetchDetail = useCallback(async (entry: CalendarEntry) => {
+    setDetailLoading(true);
+    setDetail(null);
+    const fallback: ContentDetail = { id: entry.contentId, canale: entry.channel, status: entry.status, titolo: entry.titolo };
+    try {
+      const endpoint = contentEndpoint(entry.channel, entry.contentId);
+      if (!endpoint) { setDetail(fallback); return; }
+      const res = await fetch(endpoint);
+      if (!res.ok) throw new Error();
+      const d = await res.json();
+      const withPath = Array.isArray(d.assets) ? d.assets.find((a: { path?: string }) => a.path) ?? d.assets[0] : null;
+      setDetail({
+        id: d.id, canale: entry.channel, status: d.status ?? entry.status, titolo: entry.titolo,
+        caption: d.payload?.caption ?? d.payload?.titoloSeo ?? undefined,
+        imageUrl: withPath?.id ? `/api/assets/${withPath.id}` : undefined,
+      });
+    } catch {
+      setDetail(fallback);
+    } finally {
+      setDetailLoading(false);
+    }
+  }, []);
+
+  const onSelectEntry = useCallback((entry: CalendarEntry) => {
+    setSelected(entry);
+    fetchDetail(entry);
+  }, [fetchDetail]);
+
+  const approveContent = useCallback(async () => {
+    if (!selected) return;
+    const endpoint = contentEndpoint(selected.channel, selected.contentId);
+    if (!endpoint) return;
+    setActionBusy(true);
+    try {
+      const res = await fetch(endpoint, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ status: "APPROVATO" }) });
+      if (res.ok) { setDetail((d) => d ? { ...d, status: "APPROVATO" } : d); loadItems(); }
+    } finally {
+      setActionBusy(false);
+    }
+  }, [selected, loadItems]);
+
+  const removeFromCalendar = useCallback(async () => {
+    if (!selected) return;
+    setActionBusy(true);
+    try { await remove(selected.id); setSelected(null); }
+    finally { setActionBusy(false); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selected]);
+
+  useEffect(() => {
+    const h = (e: KeyboardEvent) => { if (e.key === "Escape") setSelected(null); };
+    document.addEventListener("keydown", h);
+    return () => document.removeEventListener("keydown", h);
+  }, []);
+
   const step = (dir: number) => setCursor((c) => {
     const n = new Date(c);
     if (view === "settimana") n.setDate(n.getDate() + dir * 7);
@@ -80,9 +145,9 @@ export function CalendarBoard() {
     : cursor.toLocaleDateString("it-IT", { month: "long", year: "numeric" });
 
   const Pill = ({ e }: { e: CalendarEntry }) => (
-    <Link href={e.href} className={`mb-1 block truncate rounded px-1 py-0.5 text-xs ${channelColor(e.channel)}`} title={`${e.channel} · ${e.titolo}`}>
+    <button type="button" onClick={() => onSelectEntry(e)} className={`mb-1 block w-full truncate rounded px-1 py-0.5 text-left text-xs ${channelColor(e.channel)}`} title={`${e.channel} · ${e.titolo}`}>
       {e.titolo}
-    </Link>
+    </button>
   );
 
   const renderMese = () => {
@@ -181,6 +246,47 @@ export function CalendarBoard() {
           </div>
         )}
       </aside>
+
+      {selected && (
+        <div className="fixed inset-0 z-40 flex justify-end bg-black/20" onClick={() => setSelected(null)}>
+          <div className="h-full w-96 max-w-full overflow-y-auto bg-white p-5 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="mb-3 flex items-start justify-between gap-2">
+              <div>
+                <span className={`rounded px-1.5 py-0.5 text-xs ${channelColor(selected.channel)}`}>{selected.channel}</span>
+                <h2 className="mt-1 text-base font-semibold">{selected.titolo}</h2>
+              </div>
+              <button onClick={() => setSelected(null)} className="rounded p-1 text-neutral-400 hover:text-neutral-700" aria-label="Chiudi">✕</button>
+            </div>
+
+            {detailLoading ? (
+              <p className="text-sm text-neutral-500">Caricamento…</p>
+            ) : (
+              <div className="space-y-3 text-sm">
+                {detail?.imageUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={detail.imageUrl} alt={selected.titolo} className="w-full rounded border border-neutral-200" />
+                ) : null}
+                <div className="flex items-center gap-2">
+                  <span className="text-neutral-500">Stato:</span>
+                  <StatusBadge status={detail?.status ?? selected.status} />
+                </div>
+                {detail?.caption ? <p className="whitespace-pre-wrap text-neutral-700">{detail.caption}</p> : null}
+                <span className="block text-xs text-neutral-400">Programmato: {new Date(selected.scheduledAt).toLocaleString("it-IT", { dateStyle: "medium", timeStyle: "short" })}</span>
+
+                <div className="flex flex-col gap-2 pt-2">
+                  {(detail?.status ?? selected.status) !== "APPROVATO" ? (
+                    <button onClick={approveContent} disabled={actionBusy} className="rounded bg-emerald-600 px-3 py-2 text-sm text-white disabled:opacity-50">
+                      {actionBusy ? "…" : "Approva"}
+                    </button>
+                  ) : null}
+                  <Link href={selected.href} className="rounded border border-neutral-300 px-3 py-2 text-center text-sm hover:bg-neutral-50">Vai al contenuto</Link>
+                  <button onClick={removeFromCalendar} disabled={actionBusy} className="rounded bg-red-50 px-3 py-2 text-sm text-red-700 disabled:opacity-50">Rimuovi dal calendario</button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

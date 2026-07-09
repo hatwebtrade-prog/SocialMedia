@@ -22,7 +22,7 @@ export function buildRunDueDeps(): RunDueDeps {
         select: { id: true, canale: true },
       }),
     // deps costruite on-demand: se manca la config di un canale, fallisce solo quel canale
-    publishMeta: (id) => publishMetaContent({ contentId: id }, buildMetaPublishDeps()),
+    publishMeta: async (id) => publishMetaContent({ contentId: id }, await buildMetaPublishDeps()),
     publishBlog: async (id) => {
       const target = await resolveBlogTarget();
       return publishBlogContent(

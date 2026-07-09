@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { fetchProductsWithMetafields, type ShopProduct } from "./products";
 import { downloadAndResizeProductImage } from "./product-image";
+import { shopifyCreds } from "./creds";
 
 export interface MappedProduct {
   handle: string;
@@ -24,7 +25,8 @@ export function mapShopProductToProduct(p: ShopProduct): MappedProduct {
 
 /** Fetches Shopify products and upserts them into the local Product table (by handle). */
 export async function importShopifyProducts(): Promise<{ imported: number }> {
-  const products = await fetchProductsWithMetafields();
+  const { shop, token } = await shopifyCreds();
+  const products = await fetchProductsWithMetafields({ shop, token });
   let imported = 0;
   for (const p of products) {
     const data = mapShopProductToProduct(p);

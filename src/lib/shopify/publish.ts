@@ -1,10 +1,9 @@
-const API_VERSION = process.env.SHOPIFY_API_VERSION ?? "2024-10";
+import { shopifyCreds } from "./creds";
 
-function cfg() {
-  const shop = process.env.SHOPIFY_SHOP_DOMAIN;
-  const token = process.env.SHOPIFY_ADMIN_TOKEN;
-  if (!shop || !token) throw new Error("SHOPIFY_SHOP_DOMAIN o SHOPIFY_ADMIN_TOKEN mancante");
-  return { shop, token, version: API_VERSION };
+/** Credenziali Shopify (DB con precedenza, altrimenti .env). */
+async function cfg() {
+  const { shop, token, version } = await shopifyCreds();
+  return { shop, token, version };
 }
 
 export function buildArticleBodyHtml(corpoHtml: string, jsonLd?: string): string {
@@ -15,7 +14,7 @@ export function buildArticleBodyHtml(corpoHtml: string, jsonLd?: string): string
 export interface ShopBlog { id: number; title: string; handle: string; }
 
 export async function fetchBlogs(): Promise<ShopBlog[]> {
-  const { shop, token, version } = cfg();
+  const { shop, token, version } = await cfg();
   const res = await fetch(`https://${shop}/admin/api/${version}/blogs.json`, {
     headers: { "X-Shopify-Access-Token": token, Accept: "application/json" },
   });
@@ -34,7 +33,7 @@ export interface PublishArticleArgs {
 }
 
 export async function publishArticle(args: PublishArticleArgs): Promise<{ id: number; handle: string }> {
-  const { shop, token, version } = cfg();
+  const { shop, token, version } = await cfg();
   const article: Record<string, unknown> = { title: args.title, body_html: args.bodyHtml, published: args.published };
   if (args.tags) article.tags = args.tags;
   if (args.imageBase64) article.image = { attachment: args.imageBase64 };
@@ -51,7 +50,7 @@ export async function publishArticle(args: PublishArticleArgs): Promise<{ id: nu
 /** Deletes a published article on Shopify via the Admin GraphQL `articleDelete` mutation.
  *  Returns `{ ok, notFound }`; an already-absent article resolves to `{ ok: true, notFound: true }`. */
 export async function deleteArticle(articleId: string): Promise<{ ok: boolean; notFound: boolean }> {
-  const { shop, token, version } = cfg();
+  const { shop, token, version } = await cfg();
   const query = `mutation { articleDelete(id: "gid://shopify/Article/${articleId}") { deletedArticleId userErrors { field message } } }`;
   const res = await fetch(`https://${shop}/admin/api/${version}/graphql.json`, {
     method: "POST",

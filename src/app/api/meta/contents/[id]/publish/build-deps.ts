@@ -1,16 +1,16 @@
 import { prisma } from "@/lib/prisma";
 import type { MetaPublishDeps, MetaImage } from "@/lib/meta/publish";
 import { describeMetaContent } from "@/lib/meta/describe";
-import { metaConfigFromEnv, publishFacebook, publishInstagram } from "@/lib/meta/graph";
+import { metaConfigFromDb, publishFacebook, publishInstagram } from "@/lib/meta/graph";
 import { readAssetBase64 } from "@/lib/image/store";
 
 export function publicBaseUrl() {
   return process.env.META_PUBLIC_BASE_URL || "http://localhost:8001";
 }
 
-/** Real deps for direct Meta publishing (Prisma + Graph API). */
-export function buildMetaPublishDeps(): MetaPublishDeps {
-  const cfg = metaConfigFromEnv();
+/** Real deps for direct Meta publishing (Prisma + Graph API). Credenziali dal DB con fallback env. */
+export async function buildMetaPublishDeps(): Promise<MetaPublishDeps> {
+  const cfg = await metaConfigFromDb();
   return {
     loadContent: async (contentId) => {
       const c = await prisma.generatedContent.findUnique({ where: { id: contentId }, include: { assets: true } });

@@ -9,7 +9,7 @@ export async function POST(_request: Request, { params }: Ctx) {
   const { id } = await params;
   const injected = getDepsFactory()();
   const run = injected.__run ?? publishMetaContent;
-  const deps = injected.__run ? ({} as never) : buildMetaPublishDeps();
+  const deps = injected.__run ? ({} as never) : await buildMetaPublishDeps();
   const result = await run({ contentId: id }, deps);
   return NextResponse.json(result, { status: result.status === "ERROR" ? 502 : 200 });
 }

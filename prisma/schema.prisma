@@ -295,3 +295,12 @@ model BrandVisualProfile {
   referenceImagePaths String[] @default([])
   updatedAt           DateTime @updatedAt
 }
+
+// Key/value app settings (es. credenziali Shopify/Meta configurabili da UI).
+// I valori qui hanno precedenza sulle env; se assenti si usa il .env come fallback.
+model AppSetting {
+  key       String   @id
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

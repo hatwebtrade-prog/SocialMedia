@@ -17,6 +17,18 @@ export function metaConfigFromEnv(): GraphConfig {
   };
 }
 
+/** Config Meta con credenziali dal DB (AppSetting) e fallback su .env. */
+export async function metaConfigFromDb(): Promise<GraphConfig> {
+  const { getSettingsMap } = await import("@/lib/settings/store");
+  const m = await getSettingsMap(["META_PAGE_ACCESS_TOKEN", "META_FACEBOOK_PAGE_ID", "META_INSTAGRAM_ACCOUNT_ID", "META_API_VERSION"]);
+  return {
+    apiVersion: m.META_API_VERSION || process.env.META_API_VERSION || "v20.0",
+    pageId: m.META_FACEBOOK_PAGE_ID || process.env.META_FACEBOOK_PAGE_ID || "",
+    igAccountId: m.META_INSTAGRAM_ACCOUNT_ID || process.env.META_INSTAGRAM_ACCOUNT_ID || "",
+    token: m.META_PAGE_ACCESS_TOKEN || process.env.META_PAGE_ACCESS_TOKEN || "",
+  };
+}
+
 const base = (cfg: GraphConfig) => `https://graph.facebook.com/${cfg.apiVersion}`;
 
 async function gfetch(f: typeof fetch, url: string, init: RequestInit) {

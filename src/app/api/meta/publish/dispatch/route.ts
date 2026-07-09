@@ -11,7 +11,7 @@ export async function POST(request: Request) {
   if (!secret || request.headers.get("x-agocap-secret") !== secret) {
     return NextResponse.json({ error: "Non autorizzato" }, { status: 401 });
   }
-  const deps = buildMetaPublishDeps();
+  const deps = await buildMetaPublishDeps();
   const result = await dispatchDueMeta({
     findDue: () =>
       prisma.generatedContent.findMany({

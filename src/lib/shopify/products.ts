@@ -11,11 +11,6 @@ export interface ShopProduct {
 // NOTE: GraphQL query + API version verified live (Task 12).
 const API_VERSION = process.env.SHOPIFY_API_VERSION ?? "2024-10";
 
-function storeUrl(): string {
-  const shop = process.env.SHOPIFY_SHOP_DOMAIN ?? "";
-  return process.env.SHOPIFY_STORE_URL ?? `https://${shop}`;
-}
-
 /** Maps the Shopify Admin GraphQL products response to ShopProduct[]. The ONLY Shopify-format-aware code. */
 export function normalizeProducts(raw: unknown, store: string): ShopProduct[] {
   const edges = (raw as { data?: { products?: { edges?: unknown[] } } })?.data?.products?.edges;
@@ -52,12 +47,15 @@ export function normalizeProducts(raw: unknown, store: string): ShopProduct[] {
   return out;
 }
 
-/** Fetches products + metafields from the Shopify Admin GraphQL API (read-only). */
-export async function fetchProductsWithMetafields(): Promise<ShopProduct[]> {
-  const shop = process.env.SHOPIFY_SHOP_DOMAIN;
-  const token = process.env.SHOPIFY_ADMIN_TOKEN;
+export interface ShopifyCredentials { shop: string; token: string; }
+
+/** Fetches products + metafields from the Shopify Admin GraphQL API (read-only).
+ *  Accetta credenziali esplicite (da DB/UI); in loro assenza usa le env. */
+export async function fetchProductsWithMetafields(creds?: ShopifyCredentials): Promise<ShopProduct[]> {
+  const shop = creds?.shop || process.env.SHOPIFY_SHOP_DOMAIN;
+  const token = creds?.token || process.env.SHOPIFY_ADMIN_TOKEN;
   if (!shop || !token) throw new Error("SHOPIFY_SHOP_DOMAIN o SHOPIFY_ADMIN_TOKEN mancante");
-  const url = storeUrl();
+  const url = process.env.SHOPIFY_STORE_URL ?? `https://${shop}`;
   const out: ShopProduct[] = [];
   let after: string | null = null;
   // Paginate through the full catalog (Shopify caps `first` at 250 per page). Safety cap: 40 pages.
