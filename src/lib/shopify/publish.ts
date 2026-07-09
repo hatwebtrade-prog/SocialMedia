@@ -47,6 +47,19 @@ export async function publishArticle(args: PublishArticleArgs): Promise<{ id: nu
   return { id: json.article.id, handle: json.article.handle };
 }
 
+/** Aggiorna SOLO l'immagine in evidenza di un articolo Shopify esistente (PUT, in-place).
+ *  Non cambia URL/handle: serve a dare la miniatura ad articoli già pubblicati. */
+export async function updateArticleImage(blogId: number, articleId: number, imageBase64: string): Promise<{ ok: boolean }> {
+  const { shop, token, version } = await cfg();
+  const res = await fetch(`https://${shop}/admin/api/${version}/blogs/${blogId}/articles/${articleId}.json`, {
+    method: "PUT",
+    headers: { "X-Shopify-Access-Token": token, "Content-Type": "application/json", Accept: "application/json" },
+    body: JSON.stringify({ article: { id: articleId, image: { attachment: imageBase64 } } }),
+  });
+  if (!res.ok) throw new Error(`Shopify article update HTTP ${res.status}: ${(await res.text().catch(() => "")).slice(0, 200)}`);
+  return { ok: true };
+}
+
 /** Deletes a published article on Shopify via the Admin GraphQL `articleDelete` mutation.
  *  Returns `{ ok, notFound }`; an already-absent article resolves to `{ ok: true, notFound: true }`. */
 export async function deleteArticle(articleId: string): Promise<{ ok: boolean; notFound: boolean }> {
